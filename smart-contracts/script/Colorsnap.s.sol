@@ -1,18 +1,25 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.20;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Counter} from "../src/Counter.sol";
+import {ColorSnap} from "../src/Colorsnap.sol";
 
-contract CounterScript is Script {
-    Counter public counter;
+contract ColorSnapScript is Script {
+    ColorSnap public colorsnap;
 
     function setUp() public {}
 
     function run() public {
-        vm.startBroadcast();
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        address owner = vm.addr(deployerPrivateKey);
+        
+        console.log("Deploying ColorSnap contract with owner:", owner);
+        
+        vm.startBroadcast(deployerPrivateKey);
 
-        counter = new Counter();
+        colorsnap = new ColorSnap(owner);
+        
+        console.log("ColorSnap deployed to:", address(colorsnap));
 
         vm.stopBroadcast();
     }

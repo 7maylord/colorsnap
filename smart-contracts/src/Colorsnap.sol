@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-contract ColorStark is Ownable, UUPSUpgradeable {
+contract ColorSnap is Ownable, UUPSUpgradeable {
     // Enum for colors
     enum Color {
         Red,    // 0
@@ -67,8 +67,7 @@ contract ColorStark is Ownable, UUPSUpgradeable {
         bool wasCompleted
     );
 
-    constructor(address _owner) {
-        _transferOwnership(_owner);
+    constructor(address _owner) Ownable(_owner) {
         nextGameId = 1;
         playerCount = 0;
     }
