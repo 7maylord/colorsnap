@@ -2,9 +2,8 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-contract ColorSnap is Ownable, UUPSUpgradeable {
+contract ColorSnap is Ownable {
     // Enum for colors
     enum Color {
         Red,    // 0
@@ -71,9 +70,6 @@ contract ColorSnap is Ownable, UUPSUpgradeable {
         nextGameId = 1;
         playerCount = 0;
     }
-
-    // Required for UUPS upgrades
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     // Set player name
     function setPlayerName(string memory name) external {

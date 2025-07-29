@@ -5,14 +5,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createAppKit } from '@reown/appkit/react'
 import React, { type ReactNode } from 'react'
 import { cookieToInitialState, WagmiProvider, type Config } from 'wagmi'
+import { liskSepolia } from '@reown/appkit/networks'
 
 // Set up queryClient
 const queryClient = new QueryClient()
 
 // Set up metadata
 const metadata = {
-  name: 'next-reown-appkit',
-  description: 'next-reown-appkit',
+  name: 'ColorSnap Game',
+  description: 'Decentralized color matching game on Lisk Sepolia',
   url: 'https://github.com/0xonerb/next-reown-appkit-ssr', // origin must match your domain & subdomain
   icons: ['https://avatars.githubusercontent.com/u/179229932']
 }
@@ -20,8 +21,9 @@ const metadata = {
 // Create the modal
 export const modal = createAppKit({
   adapters: [wagmiAdapter],
-  projectId,
+  projectId: projectId!,
   networks,
+  defaultNetwork: liskSepolia,
   metadata,
   themeMode: 'light',
   features: {
