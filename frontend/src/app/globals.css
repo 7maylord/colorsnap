@@ -1,111 +1,82 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
 }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); }
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+@keyframes twinkle-delayed {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  25% { opacity: 0.8; transform: scale(1.3); }
+  75% { opacity: 0.5; transform: scale(1.1); }
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+@keyframes bounce-around-1 {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(20px, -30px) rotate(8deg); }
+  40% { transform: translate(-15px, 10px) rotate(-6deg); }
+  60% { transform: translate(25px, 25px) rotate(12deg); }
+  80% { transform: translate(-10px, -20px) rotate(-10deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
 }
 
-section {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 16px;
-  background-color: #f9f9f9;
-  padding: 13px;
-  margin: 10px;
-  width: 90%;
-  text-align: left;
+@keyframes bounce-around-2 {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(-25px, 15px) rotate(-10deg); }
+  50% { transform: translate(15px, -20px) rotate(7deg); }
+  75% { transform: translate(-20px, 25px) rotate(10deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
 }
 
-.pages {
-  align-items: center;
-  justify-items: center;
-  text-align: center;
+@keyframes bounce-around-3 {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  30% { transform: translate(10px, 25px) rotate(12deg); }
+  60% { transform: translate(-20px, -15px) rotate(-8deg); }
+  90% { transform: translate(20px, 10px) rotate(6deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
 }
 
-button {
-  padding: 10px 15px;
-  background-color: white;
-  color: black;
-  border: 2px solid black;
-  border-radius: 6px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin: 15px; /* Space between buttons */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
 }
 
-button:hover {
-  background-color: black;
-    color: white;
+.animate-float-delayed {
+  animation: float-delayed 8s ease-in-out infinite 2s;
 }
 
-button:active {
-  background-color: #333; /* Dark gray on click */
-    color: white;
+.animate-float-slow {
+  animation: float-slow 10s ease-in-out infinite 1s;
 }
 
-h1 {
-  margin: 20px;
+.animate-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
 }
 
-pre {
-  white-space: pre-wrap; /* Wrap text */
-  word-wrap: break-word; /* Break long words */
-  word-break: break-all;
+.animate-twinkle-delayed {
+  animation: twinkle-delayed 4s ease-in-out infinite 1.5s;
 }
 
-
-.link-button {
-  background-color: black;
-  color: white;
-  padding: 5px 10px;
-  text-decoration: none;
-  border-radius: 5px;
+.bounce-bottle-1 {
+  animation: bounce-around-1 7s ease-in-out infinite;
 }
-
-.link-button:hover {
-  background-color: #333;  /* Darken the background on hover */
+.bounce-bottle-2 {
+  animation: bounce-around-2 8s ease-in-out infinite 1.5s;
 }
-
-.link-button:hover {
-  background-color: white;  /* Change background to white on hover */
-  color: black;  /* Change text color to black on hover */
-}
-
-.advice {
-  text-align: 'center';
-   margin-bottom: 10px;
-   line-height: 25px;
+.bounce-bottle-3 {
+  animation: bounce-around-3 9s ease-in-out infinite 2.2s;
 }

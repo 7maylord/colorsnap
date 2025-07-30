@@ -87,6 +87,8 @@ contract ColorSnap is Ownable {
     // Start a new game
     function startGame() external {
         address player = msg.sender;
+        require(player != address(0), "Invalid player address");
+        require(isPlayerRegistered(player), "Player not registered");
         require(!hasActiveGame(player), "Player already in game");
         
         uint256 gameId = nextGameId;
@@ -127,6 +129,9 @@ contract ColorSnap is Ownable {
     // Submit game result
     function submitResult(uint256 gameId, uint8[5] memory finalBottles, uint8 moves) external {
         address player = msg.sender;
+        require(player != address(0), "Invalid player address");
+        require(isPlayerRegistered(player), "Player not registered");
+        require(gameId > 0 && gameId < nextGameId, "Invalid game ID");
         Game storage game = gameState[gameId];
         
         require(game.isActive, "Game not active");

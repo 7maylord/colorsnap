@@ -110,7 +110,10 @@ contract ColorSnapScript is Script {
         string memory chainId = vm.envString("CHAIN_ID");
         string memory explorerUrl;
         
-        if (keccak256(abi.encodePacked(chainId)) == keccak256(abi.encodePacked("4202"))) {
+        if (keccak256(abi.encodePacked(chainId)) == keccak256(abi.encodePacked("84532"))) {
+            // Base Sepolia
+            explorerUrl = "https://sepolia.basescan.org";
+        } else if (keccak256(abi.encodePacked(chainId)) == keccak256(abi.encodePacked("4202"))) {
             // Lisk Sepolia
             explorerUrl = "https://sepolia-blockscout.lisk.com";
         } else {

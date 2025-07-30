@@ -1,12 +1,12 @@
 # ColorSnap Deployment Guide
 
-This guide explains how to deploy the ColorSnap smart contract to Lisk Sepolia testnet.
+This guide explains how to deploy the ColorSnap smart contract to Base Sepolia testnet.
 
 ## Prerequisites
 
 1. **Foundry installed** - [Install Foundry](https://book.getfoundry.sh/getting-started/installation)
 2. **Private key** - Your wallet's private key for deployment
-3. **RPC URL** - Lisk Sepolia RPC endpoint
+3. **RPC URL** - Base Sepolia RPC endpoint
 4. **Etherscan API key** - For contract verification
 
 ## Environment Variables
@@ -16,8 +16,8 @@ Create a `.env` file in the `smart-contracts` directory:
 ```bash
 # Required for deployment
 PRIVATE_KEY=your_private_key_here
-RPC_URL=https://rpc.sepolia-api.lisk.com
-CHAIN_ID=4202
+RPC_URL=https://sepolia.base.org
+CHAIN_ID=84532
 
 # Required for verification
 ETHERSCAN_API_KEY=your_etherscan_api_key_here
@@ -25,14 +25,14 @@ ETHERSCAN_API_KEY=your_etherscan_api_key_here
 
 ### Getting RPC URLs
 
-**Lisk Sepolia RPC URLs:**
-- **Public RPC**: `https://rpc.sepolia-api.lisk.com`
-- **Alchemy**: `https://lisk-sepolia.g.alchemy.com/v2/YOUR_API_KEY`
-- **Infura**: `https://lisk-sepolia.infura.io/v3/YOUR_PROJECT_ID`
+**Base Sepolia RPC URLs:**
+- **Public RPC**: `https://sepolia.base.org`
+- **Alchemy**: `https://base-sepolia.g.alchemy.com/v2/YOUR_API_KEY`
+- **Infura**: `https://base-sepolia.infura.io/v3/YOUR_PROJECT_ID`
 
 ### Getting Etherscan API Key
 
-1. Go to [Etherscan](https://etherscan.io/)
+1. Go to [Basescan](https://basescan.org/)
 2. Create an account and log in
 3. Go to your profile and get your API key
 4. Add it to your `.env` file
@@ -55,7 +55,7 @@ forge script script/Colorsnap.s.sol --rpc-url $RPC_URL --broadcast
 forge script script/Colorsnap.s.sol --rpc-url $RPC_URL --broadcast
 
 # Step 2: Verify (after deployment)
-forge verify-contract CONTRACT_ADDRESS src/Colorsnap.sol:ColorSnap --chain 4202 --constructor-args OWNER_ADDRESS --etherscan-api-key $ETHERSCAN_API_KEY
+forge verify-contract CONTRACT_ADDRESS src/Colorsnap.sol:ColorSnap --chain 84532 --constructor-args OWNER_ADDRESS --etherscan-api-key $ETHERSCAN_API_KEY
 ```
 
 ### 4. Deploy with automatic verification
@@ -68,8 +68,8 @@ forge script script/Colorsnap.s.sol --rpc-url $RPC_URL --broadcast --verify --fo
 ```bash
 # Set environment variables
 export PRIVATE_KEY="0x1234567890abcdef..."
-export RPC_URL="https://rpc.sepolia-api.lisk.com"
-export CHAIN_ID="4202"
+export RPC_URL="https://sepolia.base.org"
+export CHAIN_ID="84532"
 export ETHERSCAN_API_KEY="YourEtherscanAPIKey"
 
 # Option 1: Deploy only
@@ -84,32 +84,32 @@ forge script script/Colorsnap.s.sol --rpc-url $RPC_URL --broadcast --verify --fo
 ```
 === DEPLOYMENT CONFIGURATION ===
 Owner address: 0x...
-Chain ID: 4202
-RPC URL: https://rpc.sepolia-api.lisk.com
+Chain ID: 84532
+RPC URL: https://sepolia.base.org
 ================================
 Deploying ColorSnap contract...
 SUCCESS: ColorSnap deployed to: 0x...
 Starting contract verification...
-Chain ID: 4202
+Chain ID: 84532
 SUCCESS: Contract verified successfully!
-View contract on: https://sepolia-blockscout.lisk.com/address/0x...
+View contract on: https://sepolia.basescan.org/address/0x...
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **"Insufficient funds"** - Make sure your wallet has LSK tokens for gas
+1. **"Insufficient funds"** - Make sure your wallet has ETH tokens for gas
 2. **"Invalid RPC URL"** - Check your RPC URL is correct and accessible
 3. **"Verification failed"** - Check your Etherscan API key is valid
-4. **"Chain ID not supported"** - Make sure you're using chain ID 4202 for Lisk Sepolia
+4. **"Chain ID not supported"** - Make sure you're using chain ID 84532 for Base Sepolia
 5. **"--fork-url required"** - Use `--fork-url $RPC_URL` when using `--verify`
 
-### Getting LSK Testnet Tokens
+### Getting Base Sepolia Testnet Tokens
 
-1. Visit [Lisk Sepolia Faucet](https://faucet.sepolia.lisk.com/)
+1. Visit [Base Sepolia Faucet](https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet)
 2. Connect your wallet
-3. Request testnet LSK tokens
+3. Request testnet ETH tokens
 
 ## Contract Address
 

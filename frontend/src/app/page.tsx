@@ -1,25 +1,17 @@
-// import { cookieStorage, createStorage, http } from '@wagmi/core'
-import { ConnectButton } from "@/components/ConnectButton";
-import { InfoList } from "@/components/InfoList";
-import { ActionButtonList } from "@/components/ActionButtonList";
-import Image from 'next/image';
+'use client';
+
+import BottlesBackground from "../components/BottlesBackground";
+import GameIntro from "../components/GameIntro";
+
 
 export default function Home() {
-
+  // Landing page with gaming UI
   return (
-    <div className={"pages"}>
-      <Image src="/reown.svg" alt="Reown" width={150} height={150} priority />
-      <h1>ColorSnap Game - Lisk Sepolia</h1>
-      <p>Match colored bottles to earn points on Lisk Sepolia testnet</p>
-
-      <ConnectButton />
-      <ActionButtonList />
-      <div className="advice">
-        <p>
-          This projectId only works on localhost. <br/>Go to <a href="https://cloud.reown.com" target="_blank" className="link-button" rel="Reown Cloud">Reown Cloud</a> to get your own.
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900 relative overflow-hidden flex flex-col items-center justify-center">
+      <BottlesBackground />
+      <div className="z-10 flex flex-col items-center gap-8 w-full">
+        <GameIntro />
       </div>
-      <InfoList />
     </div>
   );
 }
