@@ -103,8 +103,19 @@ contract ColorSnap is Ownable {
 
         Color[5] memory colors = [Color.Red, Color.Blue, Color.Green, Color.Yellow, Color.Purple];
         
+        // Create starting configuration
         Color[5] memory shuffledStarting = shuffleColors(colors, seed);
-        Color[5] memory shuffledTarget = shuffleColors(colors, uint256(keccak256(abi.encodePacked(seed, "target"))));
+        
+        // Create target configuration using a completely different approach
+        Color[5] memory targetColors = [Color.Blue, Color.Green, Color.Yellow, Color.Purple, Color.Red];
+        uint256 targetSeed = uint256(keccak256(abi.encodePacked(
+            seed, 
+            "target", 
+            block.timestamp,
+            player,
+            gameId
+        )));
+        Color[5] memory shuffledTarget = shuffleColors(targetColors, targetSeed);
 
         Game memory game = Game({
             player: player,
@@ -125,6 +136,7 @@ contract ColorSnap is Ownable {
 
         emit GameStarted(player, gameId, shuffledStarting, shuffledTarget);
     }
+
 
     // Submit game result
     function submitResult(uint256 gameId, uint8[5] memory finalBottles, uint8 moves) external {
@@ -299,18 +311,34 @@ contract ColorSnap is Ownable {
         Color[5] memory shuffled = colors;
         uint256 currentSeed = seed;
 
-        for (uint256 i = 4; i > 0; i--) {
-            uint256 j = currentSeed % (i + 1);
-            currentSeed = uint256(keccak256(abi.encodePacked(currentSeed)));
-            
-            // Swap elements
-            Color temp = shuffled[i];
-            shuffled[i] = shuffled[j];
-            shuffled[j] = temp;
+        // Multiple passes for better shuffling
+        for (uint256 pass = 0; pass < 3; pass++) {
+            for (uint256 i = 4; i > 0; i--) {
+                // Use different parts of the seed for more randomness
+                uint256 j = (currentSeed >> (pass * 8)) % (i + 1);
+                currentSeed = uint256(keccak256(abi.encodePacked(currentSeed, pass, i)));
+                
+                // Swap elements
+                Color temp = shuffled[i];
+                shuffled[i] = shuffled[j];
+                shuffled[j] = temp;
+            }
         }
 
         return shuffled;
     }
+  
+
+    // Check if two color arrays are equal
+    function arraysEqual(Color[5] memory arr1, Color[5] memory arr2) internal pure returns (bool) {
+        for (uint8 i = 0; i < 5; i++) {
+            if (arr1[i] != arr2[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     // Verify if final bottles match target
     function verifyCompletion(Color[5] memory targetColors, Color[5] memory finalColors) internal pure returns (bool) {

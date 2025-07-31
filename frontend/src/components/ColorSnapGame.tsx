@@ -1,28 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Play, RotateCw, Square, Eye, EyeOff } from 'lucide-react';
-import BottlesBackground from './BottlesBackground';
+import React, { useState, useEffect } from 'react';
+import { Play, RotateCw, Eye, EyeOff } from 'lucide-react';
+import BottlesBackground from "./BottlesBackground";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { useRouter } from "next/navigation";
-import { useGameCompletedListener } from '../hooks/useGameCompletedListener';
 import { useTargetRevealLockout } from "../hooks/useTargetRevealLockout";
+import { useGameCompletedListener } from "../hooks/useGameCompletedListener";
 import Bottle from "./Bottle";
 import CongratsMessage from "./CongratsMessage";
 import InstructionsModal from "./InstructionsModal";
 import colorSnapAbi from "../abi/color_snap.json";
 
-const colorMap = {
-  Red: 'bg-red-500',
-  Blue: 'bg-blue-500', 
-  Green: 'bg-green-500',
-  Yellow: 'bg-yellow-500',
-  Purple: 'bg-purple-500'
-};
-
 type BottleColor = 'Red' | 'Blue' | 'Green' | 'Yellow' | 'Purple';
 
 const ColorSnapGame = () => {
   const { address, isConnected } = useAccount();
-  const router = useRouter();
   const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
   
   const [playerName, setPlayerName] = useState('');
@@ -45,6 +35,8 @@ const ColorSnapGame = () => {
   const [gameTxStatus, setGameTxStatus] = useState<null | 'pending' | 'success' | 'error'>(null);
   const [gameTxError, setGameTxError] = useState<string | null>(null);
   const [showCongrats, setShowCongrats] = useState(false);
+  const [_gameCompleted, setGameCompleted] = useState(false);
+  const [_lastTransactionType, setLastTransactionType] = useState<'submit' | 'end' | null>(null);
   const [bottles, setBottles] = useState<BottleColor[]>([]);
   const [target, setTarget] = useState<BottleColor[]>([]);
   const [moves, setMoves] = useState<number>(0);
@@ -55,7 +47,7 @@ const ColorSnapGame = () => {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   
   // Wait for transaction receipt
-  const { isLoading: isConfirming, isSuccess, isError } = useWaitForTransactionReceipt({
+  const { isSuccess, isError } = useWaitForTransactionReceipt({
     hash,
   });
 
@@ -192,6 +184,7 @@ const ColorSnapGame = () => {
 
     if (activeGameData) {
       const gameId = Number(activeGameData);
+      
       if (gameId > 0) {
         setOnchainGameId(gameId.toString());
         localStorage.setItem("colorsnap_active_game_id", gameId.toString());
@@ -209,21 +202,24 @@ const ColorSnapGame = () => {
   // Handle game state data
   useEffect(() => {
     if (gameStateData && onchainGameId) {
-      const [player, gameBottles, gameTarget, gameMoves, isActive] = gameStateData as [string, number[], number[], number, boolean];
+      const [player, gameBottles, gameTarget, , isActive] = gameStateData as [string, number[], number[], number, boolean];
       
       if (player.toLowerCase() === address?.toLowerCase()) {
-        setBottles(gameBottles.map(parseColor));
-        setTarget(gameTarget.map(parseColor));
+        const parsedBottles = gameBottles.map(parseColor);
+        const parsedTarget = gameTarget.map(parseColor);
+        
+        setBottles(parsedBottles);
+        setTarget(parsedTarget);
         setMoves(0); // Reset local moves counter when fetching from chain
         setGameActive(isActive);
         
         if (!isActive) {
-          // Game completed, show congrats and reset
-          setShowCongrats(true);
+          // Game ended
           setOnchainGameId(null);
           setBottles([]);
           setTarget([]);
           setMoves(0);
+          setGameCompleted(false);
           resetTargetRevealLockout();
           localStorage.removeItem("colorsnap_active_game_id");
           
@@ -231,8 +227,6 @@ const ColorSnapGame = () => {
           setTimeout(() => {
             refetchPlayerPoints();
           }, 1000);
-          
-          setTimeout(() => setShowCongrats(false), 5000);
         }
       }
     }
@@ -253,9 +247,10 @@ const ColorSnapGame = () => {
         functionName: 'setPlayerName',
         args: [tempName.trim()],
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Transaction failed';
       setNameTxStatus('error');
-      setNameTxError(err.message || 'Transaction failed');
+      setNameTxError(errorMessage);
       setFetchError('Failed to set name on chain.');
     }
   };
@@ -275,10 +270,11 @@ const ColorSnapGame = () => {
         functionName: 'startGame',
         args: [],
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to start game';
       setLoadingGame(false);
       setGameTxStatus('error');
-      setGameTxError(err.message || 'Failed to start game');
+      setGameTxError(errorMessage);
     }
   };
 
@@ -308,6 +304,7 @@ const ColorSnapGame = () => {
     
     setGameTxStatus('pending');
     setGameTxError(null);
+    setLastTransactionType('submit');
     
     try {
       // Convert bottles to contract enum format
@@ -330,15 +327,18 @@ const ColorSnapGame = () => {
         functionName: 'submitResult',
         args: [BigInt(onchainGameId), bottleEnums, moves],
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Transaction failed';
       setGameTxStatus('error');
-      setGameTxError(err.message || 'Transaction failed');
+      setGameTxError(errorMessage);
     }
   };
 
   // End game
   const endGame = async () => {
     if (!onchainGameId || !gameActive) return;
+    
+    setLastTransactionType('end');
     
     try {
       writeContract({
@@ -347,7 +347,7 @@ const ColorSnapGame = () => {
         functionName: 'endGame',
         args: [BigInt(onchainGameId)],
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error ending game:', err);
     }
   };
@@ -414,10 +414,23 @@ const ColorSnapGame = () => {
     }
   }, [gameTxStatus]);
 
+  // Game completion listener
+  useGameCompletedListener({
+    contractAddress,
+    playerAddress: address,
+    gameId: onchainGameId,
+    onCompleted: () => {
+      setShowCongrats(true);
+      setTimeout(() => setShowCongrats(false), 3000);
+      setGameCompleted(true);
+    },
+  });
+
   // Reset target reveal lockout on new game or submission
+  const isGameTxSuccess = gameTxStatus === 'success';
   useEffect(() => {
     resetTargetRevealLockout();
-  }, [onchainGameId, gameTxStatus === 'success', resetTargetRevealLockout]);
+  }, [onchainGameId, isGameTxSuccess, resetTargetRevealLockout]);
 
   // Check if user is connected
   if (!isConnected || !address) {
@@ -459,19 +472,19 @@ const ColorSnapGame = () => {
                 <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 Player Name
               </label>
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center w-full">
                 <input
                   type="text"
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
                   placeholder="Enter your name"
-                  className="flex-1 px-4 py-3 bg-white/70 bg-opacity-30 rounded-xl text-black placeholder-gray-400 border border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 text-lg shadow-inner transition-all duration-200"
+                  className="flex-1 min-w-0 px-4 py-3 bg-white/70 bg-opacity-30 rounded-xl text-black placeholder-gray-400 border border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 text-lg shadow-inner transition-all duration-200"
                   disabled={!address || nameTxStatus === 'pending' || isPending}
                   maxLength={31}
                 />
                 <button
                   onClick={handleSetPlayerName}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 hover:from-purple-500 hover:via-pink-400 hover:to-blue-500 rounded-xl text-white font-bold text-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="flex-shrink-0 px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 hover:from-purple-500 hover:via-pink-400 hover:to-blue-500 rounded-xl text-white font-bold text-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-400 whitespace-nowrap"
                   disabled={!address || nameTxStatus === 'pending' || isPending || !tempName.trim() || tempName.length > 31}
                 >
                   {nameTxStatus === 'pending' || (isPending && nameTxStatus !== null) ? (

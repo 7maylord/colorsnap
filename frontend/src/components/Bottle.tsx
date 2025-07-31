@@ -9,13 +9,7 @@ interface BottleProps {
   onClick?: () => void;
 }
 
-const colorMap: Record<string, string> = {
-  red: "bg-red-500",
-  blue: "bg-blue-500",
-  green: "bg-green-500",
-  yellow: "bg-yellow-400",
-  purple: "bg-purple-500",
-};
+
 
 const Bottle: React.FC<BottleProps> = ({ color, index, isTarget = false, isSelected = false, onClick }) => {
   return (

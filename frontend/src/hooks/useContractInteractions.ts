@@ -1,4 +1,4 @@
-import { useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useState } from 'react';
 import colorSnapAbi from '../abi/color_snap.json';
 

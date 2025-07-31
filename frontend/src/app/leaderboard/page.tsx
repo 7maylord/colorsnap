@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useReadContract } from "wagmi";
+import { createPublicClient, http } from "viem";
+import { baseSepolia } from "viem/chains";
 import BottlesBackground from "../../components/BottlesBackground";
 import { Trophy, Sparkles } from "lucide-react";
 import colorSnapAbi from "../../abi/color_snap.json";
 
 // Helper to format contract address as 0x-prefixed hex string
-function formatAddress(addr: any) {
-  let hex = typeof addr === 'bigint'
+function formatAddress(addr: string | bigint) {
+  const hex = typeof addr === 'bigint'
     ? '0x' + addr.toString(16)
     : typeof addr === 'string' && !addr.startsWith('0x')
       ? '0x' + BigInt(addr).toString(16)
@@ -32,35 +33,69 @@ function getAvatarColor(name: string) {
   return colors[sum % colors.length];
 }
 
+interface PlayerData {
+  playerAddress: string;
+  name: string;
+  points: number;
+  moves: number;
+}
+
 export default function LeaderboardPage() {
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<PlayerData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string;
 
-  // Fetch leaderboard data using Wagmi
-  const { data: leaderboardData, error: leaderboardError } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: colorSnapAbi,
-    functionName: 'getLeaderboard',
-    query: {
-      enabled: !!contractAddress,
-    },
+  // Create public client for reading contract data
+  const publicClient = createPublicClient({
+    chain: baseSepolia,
+    transport: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://sepolia.base.org'),
   });
 
+  // Fetch leaderboard data
   useEffect(() => {
-    if (leaderboardData) {
-      const players = leaderboardData as any[];
-      const leaderboardDataProcessed = players.map((player: any) => {
+    const fetchLeaderboard = async () => {
+      if (!contractAddress) {
+        setError('Contract address not configured');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const data = await publicClient.readContract({
+          address: contractAddress as `0x${string}`,
+          abi: colorSnapAbi,
+          functionName: 'getAllPlayerPoints',
+        });
+
+        const players = data as Array<{
+          playerAddress: string;
+          name: string;
+          points: bigint;
+          moves: bigint;
+        }>;
+        const leaderboardDataProcessed = players.map((player) => {
           return {
-          address: player[0],
-          name: player[1] || "",
-          points: Number(player[2]),
-          moves: Number(player[3]),
+            playerAddress: player.playerAddress,
+            name: player.name || "",
+            points: Number(player.points),
+            moves: Number(player.moves),
           };
         });
-      leaderboardDataProcessed.sort((a, b) => b.points - a.points || a.moves - b.moves);
-      setLeaderboard(leaderboardDataProcessed);
+        leaderboardDataProcessed.sort((a, b) => b.points - a.points || a.moves - b.moves);
+        setLeaderboard(leaderboardDataProcessed);
+        setError(null);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load leaderboard';
+        setError(errorMessage);
+        console.error('Leaderboard fetch error:', err);
+      } finally {
+        setIsLoading(false);
       }
-  }, [leaderboardData]);
+    };
+
+    fetchLeaderboard();
+  }, [contractAddress, publicClient]);
 
   // Find the top score for progress bars
   const topScore = leaderboard.length > 0 ? leaderboard[0].points : 1;
@@ -88,53 +123,72 @@ export default function LeaderboardPage() {
               <Sparkles className="w-5 h-5 text-pink-300 animate-spin-slow" />
             </h2>
             <div className="space-y-2 sm:space-y-3 overflow-x-auto">
-              <div className="flex min-w-[340px] sm:min-w-0 items-center justify-between px-2 sm:px-3 pb-2 border-b border-white/20 text-xs sm:text-sm font-semibold">
-                <span className="w-6 sm:w-8 text-center">#</span>
-                <span className="w-10 sm:w-12 text-center mr-3 sm:mr-5">Avatar</span>
-                <span className="flex-1">Name</span>
-                <span className="w-20 sm:w-32 text-right">Points</span>
-                <span className="w-16 sm:w-24 text-right">Moves</span>
-              </div>
-              {leaderboard.map((player, index) => (
-                <div
-                  key={String(player.address) + index}
-                  className={
-                    `flex min-w-[340px] sm:min-w-0 items-center justify-between p-2 sm:p-3 rounded-lg transition-all duration-200 group ` +
-                    (index === 0 ? 'bg-gradient-to-r from-yellow-600 to-orange-600 shadow-lg' : 
-                      index === 1 ? 'bg-gradient-to-r from-gray-500 to-gray-600 shadow' :
-                      index === 2 ? 'bg-gradient-to-r from-amber-700 to-orange-700 shadow' :
-                      'bg-gray-700 bg-opacity-10 hover:bg-gradient-to-r hover:from-purple-700/40 hover:to-blue-700/40') +
-                    ' hover:scale-[1.025] hover:shadow-xl'
-                  }
-                >
-                  <span className="text-base sm:text-lg font-bold w-6 sm:w-8 text-center">
-                    {getMedal(index) || index + 1}
-                  </span>
-                  {/* Avatar */}
-                  <span className={`w-10 sm:w-12 h-10 sm:h-12 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white/30 shadow ${getAvatarColor(player.name || player.address)} mr-3 sm:mr-5`}>
-                    {player.name ? player.name[0].toUpperCase() : "?"}
-                  </span>
-                  <div className="flex-1">
-                    <p className="font-semibold truncate max-w-[100px] sm:max-w-none">{player.name || 'Unnamed'}</p>
-                    <p className="text-xs text-gray-300 truncate max-w-[100px] sm:max-w-none">{formatAddress(player.address)}</p>
-                    {/* Progress bar */}
-                    <div className="w-full h-2 bg-white/10 rounded-full mt-1">
-                      <div
-                        className={
-                          `h-2 rounded-full transition-all duration-500 ` +
-                          (index === 0 ? 'bg-yellow-400' :
-                            index === 1 ? 'bg-gray-300' :
-                            index === 2 ? 'bg-amber-700' :
-                            'bg-gradient-to-r from-purple-400 via-blue-400 to-green-400')
-                        }
-                        style={{ width: `${Math.max(10, (player.points / topScore) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className="w-20 sm:w-32 text-right font-bold">{player.points}</span>
-                  <span className="w-16 sm:w-24 text-right font-mono">{player.moves}</span>
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-4"></div>
+                  <p className="text-gray-300">Loading leaderboard...</p>
                 </div>
-              ))}
+              ) : error ? (
+                <div className="text-center py-8">
+                  <p className="text-red-400 mb-2">Error loading leaderboard</p>
+                  <p className="text-gray-300 text-sm">{error}</p>
+                </div>
+              ) : leaderboard.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-300">No players found</p>
+                  <p className="text-gray-400 text-sm">Be the first to play and earn points!</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex min-w-[340px] sm:min-w-0 items-center justify-between px-2 sm:px-3 pb-2 border-b border-white/20 text-xs sm:text-sm font-semibold">
+                    <span className="w-6 sm:w-8 text-center">#</span>
+                    <span className="w-10 sm:w-12 text-center mr-3 sm:mr-5">Avatar</span>
+                    <span className="flex-1">Name</span>
+                    <span className="w-20 sm:w-32 text-right">Points</span>
+                    <span className="w-16 sm:w-24 text-right">Moves</span>
+                  </div>
+                  {leaderboard.map((player, index) => (
+                    <div
+                      key={String(player.playerAddress) + index}
+                      className={
+                        `flex min-w-[340px] sm:min-w-0 items-center justify-between p-2 sm:p-3 rounded-lg transition-all duration-200 group ` +
+                        (index === 0 ? 'bg-gradient-to-r from-yellow-600 to-orange-600 shadow-lg' : 
+                          index === 1 ? 'bg-gradient-to-r from-gray-500 to-gray-600 shadow' :
+                          index === 2 ? 'bg-gradient-to-r from-amber-700 to-orange-700 shadow' :
+                          'bg-gray-700 bg-opacity-10 hover:bg-gradient-to-r hover:from-purple-700/40 hover:to-blue-700/40') +
+                        ' hover:scale-[1.025] hover:shadow-xl'
+                      }
+                    >
+                      <span className="text-base sm:text-lg font-bold w-6 sm:w-8 text-center">
+                        {getMedal(index) || index + 1}
+                      </span>
+                      {/* Avatar */}
+                      <span className={`w-10 sm:w-12 h-10 sm:h-12 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white/30 shadow ${getAvatarColor(player.name || player.playerAddress)} mr-3 sm:mr-5`}>
+                        {player.name ? player.name[0].toUpperCase() : "?"}
+                      </span>
+                      <div className="flex-1">
+                        <p className="font-semibold truncate max-w-[100px] sm:max-w-none">{player.name || 'Unnamed'}</p>
+                        <p className="text-xs text-gray-300 truncate max-w-[100px] sm:max-w-none">{formatAddress(player.playerAddress)}</p>
+                        {/* Progress bar */}
+                        <div className="w-full h-2 bg-white/10 rounded-full mt-1">
+                          <div
+                            className={
+                              `h-2 rounded-full transition-all duration-500 ` +
+                              (index === 0 ? 'bg-yellow-400' :
+                                index === 1 ? 'bg-gray-300' :
+                                index === 2 ? 'bg-amber-700' :
+                                'bg-gradient-to-r from-purple-400 via-blue-400 to-green-400')
+                            }
+                            style={{ width: `${Math.max(10, (player.points / topScore) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                      <span className="w-20 sm:w-32 text-right font-bold">{player.points}</span>
+                      <span className="w-16 sm:w-24 text-right font-mono">{player.moves}</span>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         </div>

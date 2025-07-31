@@ -1,6 +1,6 @@
 # ColorSnap Game
 
-The ColorSnap Game is a decentralized, on-chain game built on Ethereum, where players match colored bottles to a target configuration to earn points. Players connect their EVM compatible wallet, set a display name, start a game, swap bottles to match the target, and submit their solution to compete on a global leaderboard.
+The ColorSnap Game is a decentralized, on-chain game built on Somnia, where players match colored bottles to a target configuration to earn points. Players connect their EVM compatible wallet, set a display name, start a game, swap bottles to match the target, and submit their solution to compete on a global leaderboard.
 
 ## Technology Stack
 
@@ -8,7 +8,7 @@ The ColorSnap Game is a decentralized, on-chain game built on Ethereum, where pl
 - **Frontend**: Next.js 15 with TypeScript
 - **Web3**: Wagmi + Reown AppKit
 - **Styling**: Tailwind CSS
-- **Network**: Base Sepolia (L2)
+- **Network**: Somnia Testnet
 
 ## Features
 
@@ -24,17 +24,18 @@ The ColorSnap Game is a decentralized, on-chain game built on Ethereum, where pl
 1. **Deploy Smart Contract**:
    ```bash
    cd smart-contracts
-   forge script script/Colorsnap.s.sol --rpc-url https://sepolia.base.org --broadcast
+   forge script script/Colorsnap.s.sol --rpc-url $RPC_URL --broadcast
    ```
 
 2. **Setup Frontend**:
    ```bash
    cd frontend
    # Add contract address to .env.local
-   npm run dev
+   yarn install
+   yarn run dev
    ```
 
-3. **Get Testnet ETH**: Visit [Base Sepolia Faucet](https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet)
+3. **Get Testnet ETH**: Visit [Somnia Faucet](https://docs.somnia.network/get-started/request-stt-tokens-and-try-sending-tokens-to-a-random-address)
 
 ## Project Structure
 
@@ -50,7 +51,7 @@ colorsnap/
 ├── smart-contracts/   # Solidity contracts
 │   ├── src/              # Contract source
 │   ├── script/           # Deployment scripts
-│   └── DEPLOYMENT.md     # Deployment guide
+│   └── README.md     # Smart Contract setup guide
 └── README.md          # This file
 ```
 
@@ -72,7 +73,7 @@ colorsnap/
 
 ## Deployment
 
-- **Smart Contract**: Deploy to Base Sepolia using Foundry
+- **Smart Contract**: Deploy to Somnia using Foundry
 - **Frontend**: Deploy to Vercel, Netlify, or any static hosting
 - **Environment**: Set contract address and RPC URL
 

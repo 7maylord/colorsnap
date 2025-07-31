@@ -2,15 +2,10 @@
 
 import { useAccount, useDisconnect } from "wagmi";
 import { useAppKit } from "@reown/appkit/react";
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Utility for class names
-const classNames = (
-  ...classes: (string | undefined | null | false)[]
-): string => {
-  return classes.filter(Boolean).join(" ");
-};
+
 
 export default function WalletConnectButton() {
   const { address, isConnected } = useAccount();

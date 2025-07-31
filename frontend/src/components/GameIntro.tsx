@@ -24,11 +24,6 @@ export default function GameIntro() {
   });
 
   useEffect(() => {
-    console.log('Player name data:', playerNameData);
-    console.log('Player name error:', playerNameError);
-    console.log('Address:', address);
-    console.log('Contract address:', contractAddress);
-    
     if (playerNameData) {
       setPlayerName(playerNameData as string);
       localStorage.setItem("colorsnap_player_name", playerNameData as string);
@@ -62,7 +57,7 @@ export default function GameIntro() {
         ) : (
           <div className="space-y-4 mb-4 mt-4flex flex-col items-center">
             {playerName && (
-              <div className="text-lg text-white font-semibold">Welcome, {playerName}!</div>
+              <div className="text-lg text-white text-center font-semibold">Welcome, {playerName}!</div>
             )}
             <Link href="/game">
               <button

@@ -12,7 +12,7 @@ export function useGameCompletedListener({
   contractAddress: string;
   playerAddress: string | undefined;
   gameId: string | null;
-  onCompleted: (event: any) => void;
+  onCompleted: (event: unknown) => void;
   pollInterval?: number;
 }) {
   const lastCompletedGameId = useRef<string | null>(null);
@@ -34,7 +34,7 @@ export function useGameCompletedListener({
     
     // Type assertion for gameState as array
     const gameStateArray = gameState as [string, number[], number[], number, boolean];
-    const [player, gameBottles, gameTarget, moves, isActive] = gameStateArray;
+    const [player, , , , isActive] = gameStateArray;
     
     // Check if game is completed and belongs to the current player
     if (!isActive && 
