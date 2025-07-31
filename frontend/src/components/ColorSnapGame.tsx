@@ -102,40 +102,53 @@ const ColorSnapGame = () => {
   }
 
   // Fetch player name and points
-  const { data: playerNameData } = useReadContract({
+  const { data: playerNameData, error: playerNameError } = useReadContract({
     address: contractAddress as `0x${string}`,
     abi: colorSnapAbi,
     functionName: 'getPlayerName',
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!address && !!contractAddress && isConnected,
     },
   });
 
-  const { data: playerPointsData } = useReadContract({
+  const { data: playerPointsData, error: playerPointsError } = useReadContract({
     address: contractAddress as `0x${string}`,
     abi: colorSnapAbi,
     functionName: 'getPlayerPoints',
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!address && !!contractAddress && isConnected,
     },
   });
 
   // Update local state when contract data changes
   useEffect(() => {
+    console.log('ColorSnapGame - Player name data:', playerNameData);
+    console.log('ColorSnapGame - Player name error:', playerNameError);
+    console.log('ColorSnapGame - Address:', address);
+    
     if (playerNameData) {
       setPlayerName(playerNameData as string);
       localStorage.setItem("colorsnap_player_name", playerNameData as string);
+    } else if (address) {
+      // Fallback to localStorage if contract call fails
+      const storedName = localStorage.getItem("colorsnap_player_name");
+      if (storedName) {
+        setPlayerName(storedName);
+      }
     }
-  }, [playerNameData]);
+  }, [playerNameData, playerNameError, address]);
 
   useEffect(() => {
+    console.log('ColorSnapGame - Player points data:', playerPointsData);
+    console.log('ColorSnapGame - Player points error:', playerPointsError);
+    
     if (playerPointsData !== undefined && playerPointsData !== null) {
       setPoints(Number(playerPointsData));
       localStorage.setItem("colorsnap_player_points", playerPointsData.toString());
     }
-  }, [playerPointsData]);
+  }, [playerPointsData, playerPointsError]);
 
   // Fetch onchain game state
   const { data: gameStateData } = useReadContract({
@@ -194,6 +207,9 @@ const ColorSnapGame = () => {
     
     try {
       setPlayerNameOnChain(tempName.trim());
+      // Immediately update local state
+      setPlayerName(tempName.trim());
+      localStorage.setItem("colorsnap_player_name", tempName.trim());
       setNameTxStatus('success');
       setTempName('');
     } catch (err) {
@@ -208,7 +224,7 @@ const ColorSnapGame = () => {
     
     setGameTxStatus('pending');
     setGameTxError(null);
-    setLoadingGame(true);
+      setLoadingGame(true);
     
     try {
       startGameOnChain();
@@ -232,7 +248,7 @@ const ColorSnapGame = () => {
     newBottles[index] = temp;
     
     setBottles(newBottles);
-    setSelectedBottle(null);
+      setSelectedBottle(null);
     setMoves(moves + 1);
   };
 
@@ -247,18 +263,18 @@ const ColorSnapGame = () => {
       const colorToNumber = (color: BottleColor) => {
         switch (color) {
           case 'Red': return 0;
-          case 'Blue': return 1;
-          case 'Green': return 2;
-          case 'Yellow': return 3;
-          case 'Purple': return 4;
-          default: return 0;
+        case 'Blue': return 1;
+        case 'Green': return 2;
+        case 'Yellow': return 3;
+        case 'Purple': return 4;
+        default: return 0;
         }
       };
       
       const finalBottles = bottles.map(colorToNumber);
       submitResultOnChain(onchainGameId, finalBottles, moves);
       setGameTxStatus('success');
-    } catch (err) {
+        } catch (err) {
       setGameTxStatus('error');
       setGameTxError(err instanceof Error ? err.message : 'Failed to submit result');
     }
@@ -331,20 +347,20 @@ const ColorSnapGame = () => {
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 mb-8 text-white">
             <h3 className="text-lg font-semibold mb-4">Set Your Player Name</h3>
             <div className="flex gap-2">
-              <input
-                type="text"
-                value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
-                placeholder="Enter your name"
+                <input
+                  type="text"
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  placeholder="Enter your name"
                 className="flex-1 px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-300 focus:outline-none focus:border-purple-400"
-              />
-              <button
+                />
+                <button
                 onClick={handleSetPlayerName}
                 disabled={!tempName.trim() || nameTxStatus === 'pending'}
                 className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg font-medium transition-colors"
               >
                 {nameTxStatus === 'pending' ? 'Setting...' : 'Set Name'}
-              </button>
+                </button>
             </div>
             {nameTxError && (
               <p className="text-red-400 text-sm mt-2">{nameTxError}</p>
@@ -359,15 +375,15 @@ const ColorSnapGame = () => {
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 text-white">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Target</h3>
-                <button
-                  onClick={handleShowTarget}
-                  disabled={targetRevealLocked}
+                  <button
+                    onClick={handleShowTarget}
+                    disabled={targetRevealLocked}
                   className="flex items-center gap-2 px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg text-sm transition-colors"
                 >
                   {showTarget ? <EyeOff size={16} /> : <Eye size={16} />}
                   {showTarget ? 'Hide' : 'Show'} Target
                   {targetRevealLocked && ` (${targetRevealCountdown}s)`}
-                </button>
+                  </button>
               </div>
               
               {showTarget && (
@@ -421,8 +437,8 @@ const ColorSnapGame = () => {
                   End Game
                 </button>
               </div>
-            </div>
-          </div>
+                  </div>
+                </div>
         ) : (
           /* Start Game */
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 text-white text-center">

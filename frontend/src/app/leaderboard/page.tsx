@@ -37,11 +37,10 @@ export default function LeaderboardPage() {
   const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string;
 
   // Fetch leaderboard data using Wagmi
-  const { data: leaderboardData } = useReadContract({
+  const { data: leaderboardData, error: leaderboardError } = useReadContract({
     address: contractAddress as `0x${string}`,
     abi: colorSnapAbi,
-    functionName: 'getAllPlayerPoints',
-    args: [],
+    functionName: 'getLeaderboard',
     query: {
       enabled: !!contractAddress,
     },
@@ -51,16 +50,16 @@ export default function LeaderboardPage() {
     if (leaderboardData) {
       const players = leaderboardData as any[];
       const leaderboardDataProcessed = players.map((player: any) => {
-        return {
+          return {
           address: player[0],
           name: player[1] || "",
           points: Number(player[2]),
           moves: Number(player[3]),
-        };
-      });
+          };
+        });
       leaderboardDataProcessed.sort((a, b) => b.points - a.points || a.moves - b.moves);
       setLeaderboard(leaderboardDataProcessed);
-    }
+      }
   }, [leaderboardData]);
 
   // Find the top score for progress bars

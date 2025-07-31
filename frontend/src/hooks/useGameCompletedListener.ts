@@ -35,10 +35,10 @@ export function useGameCompletedListener({
     // Type assertion for gameState as array
     const gameStateArray = gameState as [string, number[], number[], number, boolean];
     const isActive = gameStateArray[4]; // isActive field
-    if (!isActive && gameId && lastCompletedGameId.current !== gameId) {
-      lastCompletedGameId.current = gameId;
+        if (!isActive && gameId && lastCompletedGameId.current !== gameId) {
+          lastCompletedGameId.current = gameId;
       onCompleted(gameState);
-    }
+        }
   }, [gameState, gameId, onCompleted]);
 
   return { refetch };

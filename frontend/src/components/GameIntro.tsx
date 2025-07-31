@@ -13,22 +13,33 @@ export default function GameIntro() {
   const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string;
 
   // Fetch player name using Wagmi
-  const { data: playerNameData } = useReadContract({
+  const { data: playerNameData, error: playerNameError } = useReadContract({
     address: contractAddress as `0x${string}`,
     abi: colorSnapAbi,
     functionName: 'getPlayerName',
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address && !!contractAddress,
+      enabled: !!address && !!contractAddress && isConnected,
     },
   });
 
   useEffect(() => {
+    console.log('Player name data:', playerNameData);
+    console.log('Player name error:', playerNameError);
+    console.log('Address:', address);
+    console.log('Contract address:', contractAddress);
+    
     if (playerNameData) {
       setPlayerName(playerNameData as string);
       localStorage.setItem("colorsnap_player_name", playerNameData as string);
+    } else if (address) {
+      // Fallback to localStorage if contract call fails
+      const storedName = localStorage.getItem("colorsnap_player_name");
+      if (storedName) {
+        setPlayerName(storedName);
+      }
     }
-  }, [playerNameData]);
+  }, [playerNameData, playerNameError, address, contractAddress]);
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-12 flex flex-col items-center">
