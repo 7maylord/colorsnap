@@ -17,12 +17,16 @@ const geistMono = Geist_Mono({
 });
 
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
   title: "ColorSnap - Somnia Color Matching Game",
   description: "A fun and interactive color bottle matching game built on Somnia blockchain",
   keywords: ["Somnia", "blockchain", "game", "DApp", "Cairo", "Web3"],
   authors: [{ name: "ColorSnap Team" }],
-  viewport: "width=device-width, initial-scale=1",
 };
 
 export default async function RootLayout({

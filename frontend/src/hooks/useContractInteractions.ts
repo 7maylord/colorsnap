@@ -25,14 +25,19 @@ export function useContractInteractions(contractAddress: string) {
     }
   };
 
-  const startGame = () => {
+  const startGame = async () => {
     try {
-      writeContract({
+      const result = await writeContract({
         address: contractAddress as `0x${string}`,
         abi: colorSnapAbi,
         functionName: 'startGame',
         args: [],
       });
+      if (typeof result === 'string') {
+        setTxHash(result);
+        return result;
+      }
+      return null;
     } catch (err) {
       console.error('Error starting game:', err);
       throw err;

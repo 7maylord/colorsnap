@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, RotateCw, Square, Eye, EyeOff } from 'lucide-react';
 import BottlesBackground from './BottlesBackground';
-import { useAccount, useReadContract } from "wagmi";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useGameCompletedListener } from '../hooks/useGameCompletedListener';
 import { useTargetRevealLockout } from "../hooks/useTargetRevealLockout";
-import { useContractInteractions } from '../hooks/useContractInteractions';
 import Bottle from "./Bottle";
 import CongratsMessage from "./CongratsMessage";
 import InstructionsModal from "./InstructionsModal";
@@ -24,7 +23,8 @@ type BottleColor = 'Red' | 'Blue' | 'Green' | 'Yellow' | 'Purple';
 const ColorSnapGame = () => {
   const { address, isConnected } = useAccount();
   const router = useRouter();
-  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string;
+  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
+  
   const [playerName, setPlayerName] = useState('');
   const [tempName, setTempName] = useState('');
   const [points, setPoints] = useState(0);
@@ -34,17 +34,11 @@ const ColorSnapGame = () => {
     targetRevealLocked,
     targetRevealCountdown,
     resetTargetRevealLockout,
-  }: {
-    showTarget: boolean;
-    handleShowTarget: () => void;
-    targetRevealLocked: boolean;
-    targetRevealCountdown: number;
-    resetTargetRevealLockout: () => void;
   } = useTargetRevealLockout();
+  
   const [selectedBottle, setSelectedBottle] = useState<number | null>(null);
   const [onchainGameId, setOnchainGameId] = useState<string | null>(null);
   const [loadingGame, setLoadingGame] = useState<boolean>(false);
-  const [txLoading, setTxLoading] = useState<boolean>(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [nameTxStatus, setNameTxStatus] = useState<null | 'pending' | 'success' | 'error'>(null);
   const [nameTxError, setNameTxError] = useState<string | null>(null);
@@ -57,19 +51,13 @@ const ColorSnapGame = () => {
   const [gameActive, setGameActive] = useState<boolean>(false);
   const [showInstructions, setShowInstructions] = useState(true);
 
-  // Contract interactions hook
-  const {
-    setPlayerName: setPlayerNameOnChain,
-    startGame: startGameOnChain,
-    submitResult: submitResultOnChain,
-    endGame: endGameOnChain,
-    isPending,
-    isConfirming,
-    isSuccess,
-    isError,
-    error,
-    txHash,
-  } = useContractInteractions(contractAddress);
+  // Write contract hook
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  
+  // Wait for transaction receipt
+  const { isLoading: isConfirming, isSuccess, isError } = useWaitForTransactionReceipt({
+    hash,
+  });
 
   // Helper function to parse Color enum from contract
   function parseColor(colorValue: number): BottleColor {
@@ -101,9 +89,9 @@ const ColorSnapGame = () => {
     return true;
   }
 
-  // Fetch player name and points
-  const { data: playerNameData, error: playerNameError } = useReadContract({
-    address: contractAddress as `0x${string}`,
+  // Read player name from contract
+  const { data: playerNameData, refetch: refetchPlayerName } = useReadContract({
+    address: contractAddress,
     abi: colorSnapAbi,
     functionName: 'getPlayerName',
     args: address ? [address] : undefined,
@@ -112,8 +100,9 @@ const ColorSnapGame = () => {
     },
   });
 
-  const { data: playerPointsData, error: playerPointsError } = useReadContract({
-    address: contractAddress as `0x${string}`,
+  // Read player points from contract
+  const { data: playerPointsData, refetch: refetchPlayerPoints } = useReadContract({
+    address: contractAddress,
     abi: colorSnapAbi,
     functionName: 'getPlayerPoints',
     args: address ? [address] : undefined,
@@ -122,37 +111,21 @@ const ColorSnapGame = () => {
     },
   });
 
-  // Update local state when contract data changes
-  useEffect(() => {
-    console.log('ColorSnapGame - Player name data:', playerNameData);
-    console.log('ColorSnapGame - Player name error:', playerNameError);
-    console.log('ColorSnapGame - Address:', address);
-    
-    if (playerNameData) {
-      setPlayerName(playerNameData as string);
-      localStorage.setItem("colorsnap_player_name", playerNameData as string);
-    } else if (address) {
-      // Fallback to localStorage if contract call fails
-      const storedName = localStorage.getItem("colorsnap_player_name");
-      if (storedName) {
-        setPlayerName(storedName);
-      }
-    }
-  }, [playerNameData, playerNameError, address]);
+  // Read player's active game
+  const { data: activeGameData, refetch: refetchActiveGame } = useReadContract({
+    address: contractAddress,
+    abi: colorSnapAbi,
+    functionName: 'getPlayerActiveGame',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && !!contractAddress && isConnected,
+      refetchInterval: 3000,
+    },
+  });
 
-  useEffect(() => {
-    console.log('ColorSnapGame - Player points data:', playerPointsData);
-    console.log('ColorSnapGame - Player points error:', playerPointsError);
-    
-    if (playerPointsData !== undefined && playerPointsData !== null) {
-      setPoints(Number(playerPointsData));
-      localStorage.setItem("colorsnap_player_points", playerPointsData.toString());
-    }
-  }, [playerPointsData, playerPointsError]);
-
-  // Fetch onchain game state
-  const { data: gameStateData } = useReadContract({
-    address: contractAddress as `0x${string}`,
+  // Read game state
+  const { data: gameStateData, refetch: refetchGameState } = useReadContract({
+    address: contractAddress,
     abi: colorSnapAbi,
     functionName: 'getGameState',
     args: onchainGameId ? [BigInt(onchainGameId)] : undefined,
@@ -162,319 +135,551 @@ const ColorSnapGame = () => {
     },
   });
 
-  // Update game state when contract data changes
+  // Update player name and points from contract data
+  useEffect(() => {
+    if (!address) {
+      setPlayerName("");
+      setPoints(0);
+      setFetchError(null);
+      localStorage.removeItem("colorsnap_player_name");
+      localStorage.removeItem("colorsnap_player_points");
+      return;
+    }
+
+    // Handle player name
+    if (playerNameData) {
+      const name = playerNameData as string;
+      if (name && name.trim() !== '') {
+        setPlayerName(name);
+        localStorage.setItem("colorsnap_player_name", name);
+        setFetchError(null);
+      } else {
+        setPlayerName("");
+        setFetchError("No name found. Please set your player name.");
+      }
+    } else {
+      // Fallback to localStorage
+      const storedName = localStorage.getItem("colorsnap_player_name");
+      if (storedName) {
+        setPlayerName(storedName);
+        setFetchError(null);
+      } else {
+        setPlayerName("");
+        setFetchError("No name found. Please set your player name.");
+      }
+    }
+
+    // Handle player points
+    if (playerPointsData !== undefined && playerPointsData !== null) {
+      const pointsValue = Number(playerPointsData);
+      setPoints(pointsValue);
+      localStorage.setItem("colorsnap_player_points", pointsValue.toString());
+    } else {
+      const storedPoints = localStorage.getItem("colorsnap_player_points");
+      if (storedPoints) {
+        setPoints(Number(storedPoints));
+      }
+    }
+  }, [address, playerNameData, playerPointsData]);
+
+  // Handle active game data
+  useEffect(() => {
+    if (!address) {
+      setOnchainGameId(null);
+      localStorage.removeItem("colorsnap_active_game_id");
+      return;
+    }
+
+    if (activeGameData) {
+      const gameId = Number(activeGameData);
+      if (gameId > 0) {
+        setOnchainGameId(gameId.toString());
+        localStorage.setItem("colorsnap_active_game_id", gameId.toString());
+      } else {
+        setOnchainGameId(null);
+        localStorage.removeItem("colorsnap_active_game_id");
+        setGameActive(false);
+        setBottles([]);
+        setTarget([]);
+        setMoves(0);
+      }
+    }
+  }, [address, activeGameData]);
+
+  // Handle game state data
   useEffect(() => {
     if (gameStateData && onchainGameId) {
-      const [player, gameBottles, gameTarget, moves, isActive] = gameStateData as [string, number[], number[], number, boolean];
+      const [player, gameBottles, gameTarget, gameMoves, isActive] = gameStateData as [string, number[], number[], number, boolean];
       
-      if (player === address) {
+      if (player.toLowerCase() === address?.toLowerCase()) {
         setBottles(gameBottles.map(parseColor));
         setTarget(gameTarget.map(parseColor));
-        setMoves(Number(moves));
+        setMoves(0); // Reset local moves counter when fetching from chain
         setGameActive(isActive);
         
         if (!isActive) {
-          // Game completed
+          // Game completed, show congrats and reset
           setShowCongrats(true);
+          setOnchainGameId(null);
+          setBottles([]);
+          setTarget([]);
+          setMoves(0);
           resetTargetRevealLockout();
+          localStorage.removeItem("colorsnap_active_game_id");
+          
+          // Refetch points
+          setTimeout(() => {
+            refetchPlayerPoints();
+          }, 1000);
+          
+          setTimeout(() => setShowCongrats(false), 5000);
         }
       }
     }
-  }, [gameStateData, onchainGameId, address, resetTargetRevealLockout]);
-
-  // Handle game completion
-  const handleGameCompleted = (event: any) => {
-    setShowCongrats(true);
-    resetTargetRevealLockout();
-    // Refresh points
-    window.location.reload();
-  };
-
-  // Use game completed listener
-  useGameCompletedListener({
-    contractAddress,
-    playerAddress: address,
-    gameId: onchainGameId,
-    onCompleted: handleGameCompleted,
-  });
+  }, [gameStateData, onchainGameId, address, resetTargetRevealLockout, refetchPlayerPoints]);
 
   // Set player name
   const handleSetPlayerName = async () => {
-    if (!tempName.trim()) return;
+    if (!tempName.trim() || !address) return;
     
     setNameTxStatus('pending');
     setNameTxError(null);
+    setFetchError(null);
     
     try {
-      setPlayerNameOnChain(tempName.trim());
-      // Immediately update local state
-      setPlayerName(tempName.trim());
-      localStorage.setItem("colorsnap_player_name", tempName.trim());
-      setNameTxStatus('success');
-      setTempName('');
-    } catch (err) {
+      writeContract({
+        address: contractAddress,
+        abi: colorSnapAbi,
+        functionName: 'setPlayerName',
+        args: [tempName.trim()],
+      });
+    } catch (err: any) {
       setNameTxStatus('error');
-      setNameTxError(err instanceof Error ? err.message : 'Failed to set player name');
+      setNameTxError(err.message || 'Transaction failed');
+      setFetchError('Failed to set name on chain.');
     }
   };
 
-  // Start new game
-  const handleStartGame = async () => {
-    if (!isConnected || !address) return;
+  // Start game
+  const startGame = async () => {
+    if (!address) return;
     
+    setLoadingGame(true);
     setGameTxStatus('pending');
     setGameTxError(null);
-      setLoadingGame(true);
     
     try {
-      startGameOnChain();
-      setGameTxStatus('success');
-      // Game ID will be updated via events or polling
-    } catch (err) {
-      setGameTxStatus('error');
-      setGameTxError(err instanceof Error ? err.message : 'Failed to start game');
-    } finally {
+      writeContract({
+        address: contractAddress,
+        abi: colorSnapAbi,
+        functionName: 'startGame',
+        args: [],
+      });
+    } catch (err: any) {
       setLoadingGame(false);
+      setGameTxStatus('error');
+      setGameTxError(err.message || 'Failed to start game');
     }
   };
 
   // Handle bottle click
   const handleBottleClick = (index: number) => {
-    if (!gameActive || selectedBottle === null) return;
+    if (!gameActive || isPending || loadingGame) return;
     
-    const newBottles = [...bottles];
-    const temp = newBottles[selectedBottle];
-    newBottles[selectedBottle] = newBottles[index];
-    newBottles[index] = temp;
-    
-    setBottles(newBottles);
+    if (selectedBottle === null) {
+      setSelectedBottle(index);
+    } else if (selectedBottle === index) {
       setSelectedBottle(null);
-    setMoves(moves + 1);
+    } else {
+      // Swap bottles in local state
+      setBottles((prev) => {
+        const newArr = [...prev];
+        [newArr[selectedBottle], newArr[index]] = [newArr[index], newArr[selectedBottle]];
+        return newArr;
+      });
+      setMoves((m) => m + 1);
+      setSelectedBottle(null);
+    }
   };
 
   // Submit result
-  const handleSubmitResult = async () => {
+  const submitResult = async () => {
     if (!onchainGameId || !gameActive) return;
     
     setGameTxStatus('pending');
     setGameTxError(null);
     
     try {
-      const colorToNumber = (color: BottleColor) => {
+      // Convert bottles to contract enum format
+      const colorToEnum = (color: BottleColor) => {
         switch (color) {
           case 'Red': return 0;
-        case 'Blue': return 1;
-        case 'Green': return 2;
-        case 'Yellow': return 3;
-        case 'Purple': return 4;
-        default: return 0;
+          case 'Blue': return 1;
+          case 'Green': return 2;
+          case 'Yellow': return 3;
+          case 'Purple': return 4;
+          default: return 0;
         }
       };
       
-      const finalBottles = bottles.map(colorToNumber);
-      submitResultOnChain(onchainGameId, finalBottles, moves);
-      setGameTxStatus('success');
-        } catch (err) {
+      const bottleEnums = bottles.map(colorToEnum);
+      
+      writeContract({
+        address: contractAddress,
+        abi: colorSnapAbi,
+        functionName: 'submitResult',
+        args: [BigInt(onchainGameId), bottleEnums, moves],
+      });
+    } catch (err: any) {
       setGameTxStatus('error');
-      setGameTxError(err instanceof Error ? err.message : 'Failed to submit result');
+      setGameTxError(err.message || 'Transaction failed');
     }
   };
 
   // End game
-  const handleEndGame = async () => {
+  const endGame = async () => {
     if (!onchainGameId || !gameActive) return;
     
     try {
-      endGameOnChain(onchainGameId);
-      setGameActive(false);
-    } catch (err) {
+      writeContract({
+        address: contractAddress,
+        abi: colorSnapAbi,
+        functionName: 'endGame',
+        args: [BigInt(onchainGameId)],
+      });
+    } catch (err: any) {
       console.error('Error ending game:', err);
     }
   };
 
-  // Reset game
-  const handleResetGame = () => {
-    setBottles([]);
-    setTarget([]);
-    setMoves(0);
-    setGameActive(false);
-    setOnchainGameId(null);
-    setSelectedBottle(null);
-    setShowCongrats(false);
+  // Handle transaction success
+  useEffect(() => {
+    if (isSuccess && hash) {
+      if (nameTxStatus === 'pending') {
+        setNameTxStatus('success');
+        setPlayerName(tempName);
+        localStorage.setItem("colorsnap_player_name", tempName);
+        setTempName('');
+        
+        // Refetch player data
+        setTimeout(() => {
+          refetchPlayerName();
+          refetchPlayerPoints();
+        }, 1000);
+      } else if (gameTxStatus === 'pending') {
+        setGameTxStatus('success');
+        setLoadingGame(false);
+        
+        // Refetch active game and game state
+        setTimeout(() => {
+          refetchActiveGame();
+          refetchGameState();
+        }, 2000);
+      }
+    }
+  }, [isSuccess, hash, nameTxStatus, gameTxStatus, tempName, refetchPlayerName, refetchPlayerPoints, refetchActiveGame, refetchGameState]);
+
+  // Handle transaction error
+  useEffect(() => {
+    if (isError && error) {
+      if (nameTxStatus === 'pending') {
+        setNameTxStatus('error');
+        setNameTxError(error.message || 'Transaction failed');
+      } else if (gameTxStatus === 'pending') {
+        setGameTxStatus('error');
+        setGameTxError(error.message || 'Transaction failed');
+        setLoadingGame(false);
+      }
+    }
+  }, [isError, error, nameTxStatus, gameTxStatus]);
+
+  // Auto-dismiss transaction status messages
+  useEffect(() => {
+    if (nameTxStatus && nameTxStatus !== 'pending') {
+      const timer = setTimeout(() => {
+        setNameTxStatus(null);
+        setNameTxError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [nameTxStatus]);
+
+  useEffect(() => {
+    if (gameTxStatus && gameTxStatus !== 'pending') {
+      const timer = setTimeout(() => {
+        setGameTxStatus(null);
+        setGameTxError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [gameTxStatus]);
+
+  // Reset target reveal lockout on new game or submission
+  useEffect(() => {
     resetTargetRevealLockout();
-    localStorage.removeItem("colorsnap_active_game_id");
-  };
+  }, [onchainGameId, gameTxStatus === 'success', resetTargetRevealLockout]);
 
   // Check if user is connected
   if (!isConnected || !address) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-center text-white">
-          <h2 className="text-2xl font-bold mb-4">Please Connect Your Wallet</h2>
-          <p className="text-gray-300">Connect your wallet to start playing ColorSnap!</p>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white relative overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold mb-4">Connect Your Wallet</h2>
+          <p className="text-gray-300 text-lg">Please connect your wallet to start playing ColorSnap!</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white relative overflow-hidden">
+      {showInstructions && (
+        <InstructionsModal open={showInstructions} onClose={() => setShowInstructions(false)} />
+      )}
+      {showCongrats && (
+        <CongratsMessage points={10} />
+      )}
       <BottlesBackground />
-      
-      <div className="relative z-10 container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 relative z-10">
         {/* Header */}
-        <div className="text-center text-white mb-8">
-          <h1 className="text-4xl font-bold mb-2">ColorSnap</h1>
-          <p className="text-gray-300">Match the bottles to the target!</p>
-        </div>
-
-        {/* Player Info */}
-        <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 mb-8 text-white">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-sm text-gray-300">Player</p>
-              <p className="font-mono">{playerName || 'Anonymous'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-300">Points</p>
-              <p className="font-bold text-xl">{points}</p>
-            </div>
+        <div className="flex flex-col items-center justify-center mb-12">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <h1 className="text-4xl sm:text-6xl font-black bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-500 bg-clip-text text-transparent tracking-tight">Color</h1>
+            <h1 className="text-4xl sm:text-6xl font-black bg-gradient-to-r from-blue-400 via-teal-400 to-green-400 bg-clip-text text-transparent tracking-tight">Snap</h1>
+            <span className="ml-2 animate-pulse text-yellow-300 text-2xl sm:text-3xl">✨</span>
           </div>
+          <p className="text-lg sm:text-xl text-gray-300 text-center">Match the colors, earn the points!</p>
         </div>
 
-        {/* Set Player Name */}
-        {!playerName && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 mb-8 text-white">
-            <h3 className="text-lg font-semibold mb-4">Set Your Player Name</h3>
-            <div className="flex gap-2">
+        {/* Name Input */}
+        <div className="max-w-md mx-auto mb-8">
+          <div className="bg-gradient-to-br from-white/10 via-purple-200/10 to-blue-200/10 backdrop-blur-xl rounded-2xl p-8 border border-white/30 shadow-xl">
+            <div className="space-y-4">
+              <label className="flex items-center gap-2 text-lg font-semibold text-purple-200 mb-2">
+                <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Player Name
+              </label>
+              <div className="flex gap-2 items-center">
                 <input
                   type="text"
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
                   placeholder="Enter your name"
-                className="flex-1 px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-300 focus:outline-none focus:border-purple-400"
+                  className="flex-1 px-4 py-3 bg-white/70 bg-opacity-30 rounded-xl text-black placeholder-gray-400 border border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 text-lg shadow-inner transition-all duration-200"
+                  disabled={!address || nameTxStatus === 'pending' || isPending}
+                  maxLength={31}
                 />
                 <button
-                onClick={handleSetPlayerName}
-                disabled={!tempName.trim() || nameTxStatus === 'pending'}
-                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg font-medium transition-colors"
-              >
-                {nameTxStatus === 'pending' ? 'Setting...' : 'Set Name'}
+                  onClick={handleSetPlayerName}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 hover:from-purple-500 hover:via-pink-400 hover:to-blue-500 rounded-xl text-white font-bold text-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  disabled={!address || nameTxStatus === 'pending' || isPending || !tempName.trim() || tempName.length > 31}
+                >
+                  {nameTxStatus === 'pending' || (isPending && nameTxStatus !== null) ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+                        <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75" />
+                      </svg> 
+                      Setting...
+                    </span>
+                  ) : 'Set'}
                 </button>
+              </div>
+              {tempName.length > 31 && (
+                <p className="text-red-400 text-sm flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg> 
+                  Name must be 31 characters or less.
+                </p>
+              )}
+              {fetchError && (
+                <p className="text-red-400 text-sm flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg> 
+                  {fetchError}
+                </p>
+              )}
+              {nameTxStatus === 'pending' && (
+                <p className="text-yellow-400 text-sm flex items-center gap-1">
+                  <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+                    <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75" />
+                  </svg> 
+                  Transaction pending...
+                </p>
+              )}
+              {nameTxStatus === 'success' && (
+                <p className="text-green-400 text-sm flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg> 
+                  Name set on-chain!
+                </p>
+              )}
+              {nameTxStatus === 'error' && (
+                <p className="text-red-400 text-sm flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg> 
+                  {nameTxError || 'Transaction failed'}
+                </p>
+              )}
+              <div className="text-center mt-2">
+                {playerName && (
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-2 justify-center">
+                      <span className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 flex items-center justify-center text-white font-bold text-lg shadow">
+                        {playerName[0]?.toUpperCase()}
+                      </span>
+                      <span className="text-lg text-white font-semibold">{playerName}</span>
+                    </div>
+                    <p className="text-sm text-gray-300">Points: {points}</p>
+                  </div>
+                )}
+              </div>
             </div>
-            {nameTxError && (
-              <p className="text-red-400 text-sm mt-2">{nameTxError}</p>
-            )}
+          </div>
+        </div>
+
+        {/* Game Controls (only if playerName is set) */}
+        {playerName && (
+          <div className="max-w-md mx-auto mb-8">
+            <div className="bg-gray-100 bg-opacity-10 backdrop-blur-sm rounded-xl p-6 border border-white border-opacity-20">
+              <div className="flex gap-4">
+                {!gameActive ? (
+                  <button
+                    onClick={startGame}
+                    disabled={!playerName || loadingGame || gameTxStatus === 'pending' || isPending}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loadingGame || gameTxStatus === 'pending' || isPending ? (
+                      <>
+                        <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+                          <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75" />
+                        </svg>
+                        Starting...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-5 h-5" />
+                        Start Game
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    onClick={endGame}
+                    className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+                    disabled={isPending}
+                  >
+                    {isPending ? (
+                      <>
+                        <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+                          <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75" />
+                        </svg>
+                        Ending...
+                      </>
+                    ) : (
+                      <>
+                        <RotateCw className="w-5 h-5" />
+                        End Game
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Game Area */}
-        {gameActive ? (
-          <div className="space-y-8">
-            {/* Target */}
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 text-white">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Target</h3>
+        {/* Game Board */}
+        {gameActive && (
+          <div className="max-w-4xl mx-auto mb-8">
+            <div className="bg-gray-500 bg-opacity-10 backdrop-blur-sm rounded-xl p-8 border border-white border-opacity-20">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold mb-2">Game #{onchainGameId}</h2>
+                <div className="flex justify-center gap-6 text-sm">
+                  <span>Moves: {moves}</span>
+                  <span>Correct: {countCorrectBottles(bottles, target)}/{bottles.length}</span>
                   <button
                     onClick={handleShowTarget}
                     disabled={targetRevealLocked}
-                  className="flex items-center gap-2 px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg text-sm transition-colors"
-                >
-                  {showTarget ? <EyeOff size={16} /> : <Eye size={16} />}
-                  {showTarget ? 'Hide' : 'Show'} Target
-                  {targetRevealLocked && ` (${targetRevealCountdown}s)`}
+                    className={
+                      `flex items-center gap-1 transition-colors ` +
+                      (targetRevealLocked
+                        ? 'text-gray-400 cursor-not-allowed'
+                        : 'text-blue-300 hover:text-blue-200')
+                    }
+                  >
+                    {showTarget ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showTarget
+                      ? 'Hide Target'
+                      : (targetRevealLocked)
+                        ? `Show Target (${targetRevealCountdown}s)`
+                        : 'Show Target'}
                   </button>
+                </div>
               </div>
-              
-              {showTarget && (
-                <div className="flex justify-center gap-4 mb-4">
-                  {target.map((color, index) => (
+
+              {/* Current Bottles */}
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-semibold mb-4">Your Bottles</h3>
+                <div className="flex justify-center">
+                  {bottles.map((color, index) => (
                     <Bottle
                       key={index}
-                      color={color}
+                      color={color as BottleColor}
                       index={index}
-                      isSelected={false}
-                      isTarget={true}
-                      onClick={() => {}}
+                      isSelected={selectedBottle === index}
+                      onClick={() => handleBottleClick(index)}
                     />
                   ))}
                 </div>
-              )}
-            </div>
+                <p className="text-sm text-gray-300 mt-2">Click two bottles to swap them</p>
+                <button
+                  onClick={submitResult}
+                  disabled={isPending || !bottlesMatchTarget(bottles, target) || gameTxStatus === 'pending'}
+                  className="mt-4 px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold transition-colors disabled:opacity-50"
+                >
+                  {gameTxStatus === 'pending' || isPending ? 'Submitting...' : 'Submit Result'}
+                </button>
+                {!bottlesMatchTarget(bottles, target) && (
+                  <p className="text-yellow-400 text-sm mt-2">Arrange the bottles to match the target before submitting!</p>
+                )}
+                {gameTxStatus === 'error' && (
+                  <p className="text-red-400 text-sm mt-2">{gameTxError || 'Transaction failed'}</p>
+                )}
+                {gameTxStatus === 'success' && !isPending && (
+                  <p className="text-green-400 text-sm mt-2">Game Verified!</p>
+                )}
+              </div>
 
-            {/* Bottles */}
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 text-white">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Your Bottles</h3>
-                <div className="text-sm text-gray-300">Moves: {moves}</div>
-              </div>
-              
-              <div className="flex justify-center gap-4 mb-4">
-                {bottles.map((color, index) => (
-                  <Bottle
-                    key={index}
-                    color={color}
-                    index={index}
-                    isSelected={selectedBottle === index}
-                    isTarget={false}
-                    onClick={() => setSelectedBottle(selectedBottle === index ? null : index)}
-                  />
-                ))}
-              </div>
-              
-              <div className="flex justify-center gap-4">
-                <button
-                  onClick={handleSubmitResult}
-                  disabled={!bottlesMatchTarget(bottles, target)}
-                  className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded-lg font-medium transition-colors"
-                >
-                  Submit Solution
-                </button>
-                <button
-                  onClick={handleEndGame}
-                  className="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors"
-                >
-                  End Game
-                </button>
-              </div>
+              {/* Target Bottles */}
+              {showTarget && (
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold mb-4">Target Configuration</h3>
+                  <div className="flex justify-center">
+                    {target.map((color, index) => (
+                      <Bottle
+                        key={index}
+                        color={color as BottleColor}
+                        index={index}
+                        isTarget={true}
+                      />
+                    ))}
                   </div>
                 </div>
-        ) : (
-          /* Start Game */
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 text-white text-center">
-            <h3 className="text-lg font-semibold mb-4">Ready to Play?</h3>
-            <button
-              onClick={handleStartGame}
-              disabled={loadingGame || gameTxStatus === 'pending'}
-              className="px-8 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg font-medium text-lg transition-colors"
-            >
-              {loadingGame || gameTxStatus === 'pending' ? 'Starting Game...' : 'Start New Game'}
-            </button>
-          </div>
-        )}
-
-        {/* Transaction Status */}
-        {(nameTxStatus === 'pending' || gameTxStatus === 'pending') && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-              <p className="text-gray-700">Processing transaction...</p>
+              )}
             </div>
           </div>
-        )}
-
-        {/* Instructions Modal */}
-        {showInstructions && (
-          <InstructionsModal open={showInstructions} onClose={() => setShowInstructions(false)} />
-        )}
-
-        {/* Congrats Message */}
-        {showCongrats && (
-          <CongratsMessage points={10} />
         )}
       </div>
     </div>
   );
 };
 
-export default ColorSnapGame; 
+export default ColorSnapGame;
