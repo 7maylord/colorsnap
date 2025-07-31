@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createAppKit } from '@reown/appkit/react'
 import React, { type ReactNode } from 'react'
 import { cookieToInitialState, WagmiProvider, type Config } from 'wagmi'
-import { baseSepolia } from '@reown/appkit/networks'
+import { somniaTestnet } from '@reown/appkit/networks'
 
 // Set up queryClient
 const queryClient = new QueryClient()
@@ -13,8 +13,8 @@ const queryClient = new QueryClient()
 // Set up metadata
 const metadata = {
   name: 'ColorSnap Game',
-  description: 'Decentralized color matching game on Base Sepolia',
-  url: 'https://github.com/0xonerb/next-reown-appkit-ssr', // origin must match your domain & subdomain
+  description: 'Decentralized color matching game on Somnia Testnet',
+  url: 'https://github.com/7maylord/colorsnap', // origin must match your domain & subdomain
   icons: ['https://avatars.githubusercontent.com/u/179229932']
 }
 
@@ -23,7 +23,7 @@ export const modal = createAppKit({
   adapters: [wagmiAdapter],
   projectId: projectId!,
   networks,
-  defaultNetwork: baseSepolia,
+  defaultNetwork: somniaTestnet,
   metadata,
   themeMode: 'light',
   features: {

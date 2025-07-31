@@ -6,11 +6,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract ColorSnap is Ownable {
     // Enum for colors
     enum Color {
-        Red,    // 0
-        Blue,   // 1
-        Green,  // 2
+        Red, // 0
+        Blue, // 1
+        Green, // 2
         Yellow, // 3
-        Purple  // 4
+        Purple // 4
+
     }
 
     // Struct for player data
@@ -36,7 +37,7 @@ contract ColorSnap is Ownable {
     mapping(address => string) public playerNames;
     mapping(uint256 => address) public players;
     mapping(address => uint256) public playerMoves;
-    
+
     // Game-specific mappings
     mapping(uint256 => mapping(uint8 => Color)) public bottles;
     mapping(uint256 => mapping(uint8 => Color)) public target;
@@ -46,25 +47,11 @@ contract ColorSnap is Ownable {
 
     // Events
     event PlayerNameSet(address indexed player, string name);
-    event GameStarted(
-        address indexed player, 
-        uint256 indexed gameId, 
-        Color[5] startingBottles, 
-        Color[5] targetBottles
-    );
+    event GameStarted(address indexed player, uint256 indexed gameId, Color[5] startingBottles, Color[5] targetBottles);
     event GameCompleted(
-        address indexed player,
-        uint256 indexed gameId,
-        uint8 finalMoves,
-        uint256 pointsEarned,
-        uint256 totalPoints
+        address indexed player, uint256 indexed gameId, uint8 finalMoves, uint256 pointsEarned, uint256 totalPoints
     );
-    event GameEnded(
-        address indexed player,
-        uint256 indexed gameId,
-        uint8 moves,
-        bool wasCompleted
-    );
+    event GameEnded(address indexed player, uint256 indexed gameId, uint8 moves, bool wasCompleted);
 
     constructor(address _owner) Ownable(_owner) {
         nextGameId = 1;
@@ -75,7 +62,7 @@ contract ColorSnap is Ownable {
     function setPlayerName(string memory name) external {
         address player = msg.sender;
         playerNames[player] = name;
-        
+
         if (!isPlayerRegistered(player)) {
             players[playerCount] = player;
             playerCount++;
@@ -90,39 +77,23 @@ contract ColorSnap is Ownable {
         require(player != address(0), "Invalid player address");
         require(isPlayerRegistered(player), "Player not registered");
         require(!hasActiveGame(player), "Player already in game");
-        
+
         uint256 gameId = nextGameId;
-        
+
         // Generate seed using block properties and player address
-        uint256 seed = uint256(keccak256(abi.encodePacked(
-            block.timestamp, 
-            block.prevrandao, 
-            player, 
-            gameId
-        )));
+        uint256 seed = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, player, gameId)));
 
         Color[5] memory colors = [Color.Red, Color.Blue, Color.Green, Color.Yellow, Color.Purple];
-        
+
         // Create starting configuration
         Color[5] memory shuffledStarting = shuffleColors(colors, seed);
-        
+
         // Create target configuration using a completely different approach
         Color[5] memory targetColors = [Color.Blue, Color.Green, Color.Yellow, Color.Purple, Color.Red];
-        uint256 targetSeed = uint256(keccak256(abi.encodePacked(
-            seed, 
-            "target", 
-            block.timestamp,
-            player,
-            gameId
-        )));
+        uint256 targetSeed = uint256(keccak256(abi.encodePacked(seed, "target", block.timestamp, player, gameId)));
         Color[5] memory shuffledTarget = shuffleColors(targetColors, targetSeed);
 
-        Game memory game = Game({
-            player: player,
-            moves: 0,
-            isActive: true,
-            seed: seed
-        });
+        Game memory game = Game({player: player, moves: 0, isActive: true, seed: seed});
 
         // Store bottles and target configurations
         for (uint8 i = 0; i < 5; i++) {
@@ -137,7 +108,6 @@ contract ColorSnap is Ownable {
         emit GameStarted(player, gameId, shuffledStarting, shuffledTarget);
     }
 
-
     // Submit game result
     function submitResult(uint256 gameId, uint8[5] memory finalBottles, uint8 moves) external {
         address player = msg.sender;
@@ -145,7 +115,7 @@ contract ColorSnap is Ownable {
         require(isPlayerRegistered(player), "Player not registered");
         require(gameId > 0 && gameId < nextGameId, "Invalid game ID");
         Game storage game = gameState[gameId];
-        
+
         require(game.isActive, "Game not active");
         require(game.player == player, "Not your game");
 
@@ -185,7 +155,7 @@ contract ColorSnap is Ownable {
     function endGame(uint256 gameId) external {
         address player = msg.sender;
         Game storage game = gameState[gameId];
-        
+
         require(game.isActive, "Game not active");
         require(game.player == player, "Not your game");
 
@@ -196,15 +166,13 @@ contract ColorSnap is Ownable {
     }
 
     // Get game state
-    function getGameState(uint256 gameId) external view returns (
-        address player,
-        Color[5] memory gameBottles,
-        Color[5] memory gameTarget,
-        uint8 moves,
-        bool isActive
-    ) {
+    function getGameState(uint256 gameId)
+        external
+        view
+        returns (address player, Color[5] memory gameBottles, Color[5] memory gameTarget, uint8 moves, bool isActive)
+    {
         Game memory game = gameState[gameId];
-        
+
         for (uint8 i = 0; i < 5; i++) {
             gameBottles[i] = bottles[gameId][i];
             gameTarget[i] = target[gameId][i];
@@ -237,7 +205,7 @@ contract ColorSnap is Ownable {
     // Get all player data
     function getAllPlayerPoints() external view returns (PlayerData[] memory) {
         PlayerData[] memory result = new PlayerData[](playerCount);
-        
+
         for (uint256 i = 0; i < playerCount; i++) {
             address player = players[i];
             result[i] = PlayerData({
@@ -247,7 +215,7 @@ contract ColorSnap is Ownable {
                 moves: playerMoves[player]
             });
         }
-        
+
         return result;
     }
 
@@ -317,7 +285,7 @@ contract ColorSnap is Ownable {
                 // Use different parts of the seed for more randomness
                 uint256 j = (currentSeed >> (pass * 8)) % (i + 1);
                 currentSeed = uint256(keccak256(abi.encodePacked(currentSeed, pass, i)));
-                
+
                 // Swap elements
                 Color temp = shuffled[i];
                 shuffled[i] = shuffled[j];
@@ -327,7 +295,6 @@ contract ColorSnap is Ownable {
 
         return shuffled;
     }
-  
 
     // Check if two color arrays are equal
     function arraysEqual(Color[5] memory arr1, Color[5] memory arr2) internal pure returns (bool) {
@@ -338,7 +305,6 @@ contract ColorSnap is Ownable {
         }
         return true;
     }
-
 
     // Verify if final bottles match target
     function verifyCompletion(Color[5] memory targetColors, Color[5] memory finalColors) internal pure returns (bool) {

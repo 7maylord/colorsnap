@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPublicClient, http } from "viem";
-import { baseSepolia } from "viem/chains";
+import { somniaTestnet } from "viem/chains";
 import BottlesBackground from "../../components/BottlesBackground";
 import { Trophy, Sparkles } from "lucide-react";
 import colorSnapAbi from "../../abi/color_snap.json";
@@ -48,8 +48,8 @@ export default function LeaderboardPage() {
 
   // Create public client for reading contract data
   const publicClient = createPublicClient({
-    chain: baseSepolia,
-    transport: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://sepolia.base.org'),
+    chain: somniaTestnet,
+    transport: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://dream-rpc.somnia.network'),
   });
 
   // Fetch leaderboard data

@@ -1,5 +1,5 @@
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
-import { baseSepolia } from '@reown/appkit/networks'
+import { somniaTestnet } from '@reown/appkit/networks'
 import type { AppKitNetwork } from '@reown/appkit/networks'
 
 // Get projectId from https://cloud.reown.com
@@ -9,11 +9,11 @@ if (!projectId) {
   throw new Error('Project ID is not defined')
 }
 
-// Create a custom Base Sepolia network with a reliable RPC
+// Create a custom Somnia Testnet network with a reliable RPC
 export const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL
 
-const customBaseSepolia = {
-  ...baseSepolia,
+const customSomniaTestnet = {
+  ...somniaTestnet,
   rpcUrls: {
     default: {
       http: [rpcUrl],
@@ -24,7 +24,7 @@ const customBaseSepolia = {
   },
 }
 
-export const networks = [customBaseSepolia] as [AppKitNetwork, ...AppKitNetwork[]]
+export const networks = [customSomniaTestnet] as [AppKitNetwork, ...AppKitNetwork[]]
 
 //Set up the Wagmi Adapter (Config)
 export const wagmiAdapter = new WagmiAdapter({

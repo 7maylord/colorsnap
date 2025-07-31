@@ -14,21 +14,21 @@ contract ColorSnapScript is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         string memory rpcUrl = vm.envString("RPC_URL");
         string memory chainId = vm.envString("CHAIN_ID");
-        
+
         address owner = vm.addr(deployerPrivateKey);
-        
+
         console.log("=== DEPLOYMENT CONFIGURATION ===");
         console.log("Owner address:", owner);
         console.log("Chain ID:", chainId);
         console.log("RPC URL:", rpcUrl);
         console.log("================================");
-        
+
         console.log("Deploying ColorSnap contract...");
-        
+
         vm.startBroadcast(deployerPrivateKey);
 
         colorsnap = new ColorSnap(owner);
-        
+
         console.log("SUCCESS: ColorSnap deployed to:", address(colorsnap));
 
         vm.stopBroadcast();
@@ -40,10 +40,10 @@ contract ColorSnapScript is Script {
     function verifyContract() internal {
         string memory chainId = vm.envString("CHAIN_ID");
         string memory apiKey = vm.envString("ETHERSCAN_API_KEY");
-        
+
         console.log("Starting contract verification...");
         console.log("Chain ID:", chainId);
-        
+
         if (bytes(apiKey).length == 0) {
             console.log("WARNING: ETHERSCAN_API_KEY not provided, skipping verification");
             logVerificationCommand();
@@ -52,7 +52,7 @@ contract ColorSnapScript is Script {
 
         // Get owner address for constructor args
         address owner = vm.addr(vm.envUint("PRIVATE_KEY"));
-        
+
         // Build verification command
         string[] memory inputs = new string[](8);
         inputs[0] = "forge";
@@ -63,11 +63,11 @@ contract ColorSnapScript is Script {
         inputs[5] = chainId;
         inputs[6] = "--constructor-args";
         inputs[7] = vm.toString(owner);
-        
+
         // Add API key if provided
         if (bytes(apiKey).length > 0) {
             string[] memory inputsWithKey = new string[](inputs.length + 2);
-            for (uint i = 0; i < inputs.length; i++) {
+            for (uint256 i = 0; i < inputs.length; i++) {
                 inputsWithKey[i] = inputs[i];
             }
             inputsWithKey[inputs.length] = "--etherscan-api-key";
@@ -92,7 +92,7 @@ contract ColorSnapScript is Script {
     function logVerificationCommand() internal view {
         string memory chainId = vm.envString("CHAIN_ID");
         address owner = vm.addr(vm.envUint("PRIVATE_KEY"));
-        
+
         console.log("");
         console.log("=== MANUAL VERIFICATION COMMAND ===");
         console.log("Contract Address:", address(colorsnap));
@@ -102,14 +102,16 @@ contract ColorSnapScript is Script {
         console.log("API Key: $ETHERSCAN_API_KEY");
         console.log("");
         console.log("Manual verification command:");
-        console.log("forge verify-contract [CONTRACT_ADDRESS] src/Colorsnap.sol:ColorSnap --chain-id [CHAIN_ID] --constructor-args [OWNER_ADDRESS] --etherscan-api-key [API_KEY]");
+        console.log(
+            "forge verify-contract [CONTRACT_ADDRESS] src/Colorsnap.sol:ColorSnap --chain-id [CHAIN_ID] --constructor-args [OWNER_ADDRESS] --etherscan-api-key [API_KEY]"
+        );
         console.log("===================================");
     }
 
     function logExplorerUrl() internal view {
         string memory chainId = vm.envString("CHAIN_ID");
         string memory explorerUrl;
-        
+
         if (keccak256(abi.encodePacked(chainId)) == keccak256(abi.encodePacked("50312"))) {
             // Somnia Testnet
             explorerUrl = "https://shannon-explorer.somnia.network";
@@ -122,7 +124,7 @@ contract ColorSnapScript is Script {
         } else {
             explorerUrl = "https://etherscan.io";
         }
-        
+
         console.log("View contract on:", explorerUrl, "/address/", address(colorsnap));
     }
 }

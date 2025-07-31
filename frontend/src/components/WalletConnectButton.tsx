@@ -5,8 +5,6 @@ import { useAppKit } from "@reown/appkit/react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-
-
 export default function WalletConnectButton() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();

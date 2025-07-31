@@ -10,7 +10,6 @@ interface BottleProps {
 }
 
 
-
 const Bottle: React.FC<BottleProps> = ({ color, index, isTarget = false, isSelected = false, onClick }) => {
   return (
     <div
