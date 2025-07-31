@@ -10,7 +10,7 @@ const Logo = () => (
         Color
       </span>
       <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-teal-500 to-green-500 bg-clip-text text-transparent group-hover:from-blue-300 group-hover:via-teal-400 group-hover:to-green-400 transition-all duration-300 animate-glow">
-        Stark
+        Snap
       </span>
       {/* Sparkle icon */}
       <span className="ml-1 animate-pulse text-yellow-300 text-lg">✨</span>
