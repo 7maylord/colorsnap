@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
-export function useTargetRevealLockout(lockoutMs = 180000, revealMs = 4000) {
+export function useTargetRevealLockout(lockoutMs = 180000, revealMs = 4000, moves = 0) {
   const [showTarget, setShowTarget] = useState(false);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(0);
@@ -8,6 +8,9 @@ export function useTargetRevealLockout(lockoutMs = 180000, revealMs = 4000) {
   const countdownInterval = useRef<NodeJS.Timeout | null>(null);
 
   const handleShowTarget = useCallback(() => {
+    // Only allow target reveal after 5 moves
+    if (moves < 5) return;
+    
     if (lockedUntil && Date.now() < lockedUntil) return;
     setShowTarget(true);
     revealTimeout.current = setTimeout(() => {
@@ -16,7 +19,7 @@ export function useTargetRevealLockout(lockoutMs = 180000, revealMs = 4000) {
       setLockedUntil(until);
       setCountdown(Math.ceil(lockoutMs / 1000));
     }, revealMs);
-  }, [lockedUntil, lockoutMs, revealMs]);
+  }, [lockedUntil, lockoutMs, revealMs, moves]);
 
   // Countdown logic
   useEffect(() => {
@@ -53,5 +56,6 @@ export function useTargetRevealLockout(lockoutMs = 180000, revealMs = 4000) {
     targetRevealLocked: !!lockedUntil && Date.now() < lockedUntil,
     targetRevealCountdown: countdown,
     resetTargetRevealLockout: reset,
+    canRevealTarget: moves >= 5,
   };
 } 

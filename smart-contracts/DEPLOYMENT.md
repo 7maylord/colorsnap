@@ -91,6 +91,7 @@ forge script script/Colorsnap.s.sol --rpc-url $RPC_URL --broadcast --verify --fo
 ### Getting Somnia Testnet Testnet Tokens
 
 1. Visit [Somnia Testnet Faucet](https://docs.somnia.network/get-started/request-stt-tokens-and-try-sending-tokens-to-a-random-address)
+
 2. Request testnet ETH tokens
 
 ## Contract Address

@@ -18,13 +18,6 @@ const ColorSnapGame = () => {
   const [playerName, setPlayerName] = useState('');
   const [tempName, setTempName] = useState('');
   const [points, setPoints] = useState(0);
-  const {
-    showTarget,
-    handleShowTarget,
-    targetRevealLocked,
-    targetRevealCountdown,
-    resetTargetRevealLockout,
-  } = useTargetRevealLockout();
   
   const [selectedBottle, setSelectedBottle] = useState<number | null>(null);
   const [onchainGameId, setOnchainGameId] = useState<string | null>(null);
@@ -32,16 +25,27 @@ const ColorSnapGame = () => {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [nameTxStatus, setNameTxStatus] = useState<null | 'pending' | 'success' | 'error'>(null);
   const [nameTxError, setNameTxError] = useState<string | null>(null);
-  const [gameTxStatus, setGameTxStatus] = useState<null | 'pending' | 'success' | 'error'>(null);
+  const [startGameTxStatus, setStartGameTxStatus] = useState<null | 'pending' | 'success' | 'error'>(null);
+  const [submitTxStatus, setSubmitTxStatus] = useState<null | 'pending' | 'success' | 'error'>(null);
+  const [forfeitTxStatus, setForfeitTxStatus] = useState<null | 'pending' | 'success' | 'error'>(null);
   const [gameTxError, setGameTxError] = useState<string | null>(null);
   const [showCongrats, setShowCongrats] = useState(false);
   const [_gameCompleted, setGameCompleted] = useState(false);
-  const [_lastTransactionType, setLastTransactionType] = useState<'submit' | 'end' | null>(null);
+  const [lastTransactionType, setLastTransactionType] = useState<'submit' | 'end' | null>(null);
   const [bottles, setBottles] = useState<BottleColor[]>([]);
   const [target, setTarget] = useState<BottleColor[]>([]);
   const [moves, setMoves] = useState<number>(0);
   const [gameActive, setGameActive] = useState<boolean>(false);
   const [showInstructions, setShowInstructions] = useState(true);
+
+  const {
+    showTarget,
+    handleShowTarget,
+    targetRevealLocked,
+    targetRevealCountdown,
+    resetTargetRevealLockout,
+    canRevealTarget,
+  } = useTargetRevealLockout(180000, 3000, moves);
 
   // Write contract hook
   const { writeContract, data: hash, isPending, error } = useWriteContract();
@@ -260,7 +264,7 @@ const ColorSnapGame = () => {
     if (!address) return;
     
     setLoadingGame(true);
-    setGameTxStatus('pending');
+    setStartGameTxStatus('pending');
     setGameTxError(null);
     
     try {
@@ -273,14 +277,14 @@ const ColorSnapGame = () => {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start game';
       setLoadingGame(false);
-      setGameTxStatus('error');
+      setStartGameTxStatus('error');
       setGameTxError(errorMessage);
     }
   };
 
   // Handle bottle click
   const handleBottleClick = (index: number) => {
-    if (!gameActive || isPending || loadingGame) return;
+    if (!gameActive || isPending || loadingGame || submitTxStatus === 'pending' || forfeitTxStatus === 'pending') return;
     
     if (selectedBottle === null) {
       setSelectedBottle(index);
@@ -302,7 +306,7 @@ const ColorSnapGame = () => {
   const submitResult = async () => {
     if (!onchainGameId || !gameActive) return;
     
-    setGameTxStatus('pending');
+    setSubmitTxStatus('pending');
     setGameTxError(null);
     setLastTransactionType('submit');
     
@@ -329,7 +333,7 @@ const ColorSnapGame = () => {
       });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Transaction failed';
-      setGameTxStatus('error');
+      setSubmitTxStatus('error');
       setGameTxError(errorMessage);
     }
   };
@@ -338,6 +342,8 @@ const ColorSnapGame = () => {
   const endGame = async () => {
     if (!onchainGameId || !gameActive) return;
     
+    setForfeitTxStatus('pending');
+    setGameTxError(null);
     setLastTransactionType('end');
     
     try {
@@ -348,6 +354,9 @@ const ColorSnapGame = () => {
         args: [BigInt(onchainGameId)],
       });
     } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Transaction failed';
+      setForfeitTxStatus('error');
+      setGameTxError(errorMessage);
       console.error('Error ending game:', err);
     }
   };
@@ -366,8 +375,26 @@ const ColorSnapGame = () => {
           refetchPlayerName();
           refetchPlayerPoints();
         }, 1000);
-      } else if (gameTxStatus === 'pending') {
-        setGameTxStatus('success');
+      } else if (startGameTxStatus === 'pending') {
+        setStartGameTxStatus('success');
+        setLoadingGame(false);
+        
+        // Refetch active game and game state
+        setTimeout(() => {
+          refetchActiveGame();
+          refetchGameState();
+        }, 2000);
+      } else if (submitTxStatus === 'pending') {
+        setSubmitTxStatus('success');
+        setLoadingGame(false);
+        
+        // Refetch active game and game state
+        setTimeout(() => {
+          refetchActiveGame();
+          refetchGameState();
+        }, 2000);
+      } else if (forfeitTxStatus === 'pending') {
+        setForfeitTxStatus('success');
         setLoadingGame(false);
         
         // Refetch active game and game state
@@ -377,7 +404,7 @@ const ColorSnapGame = () => {
         }, 2000);
       }
     }
-  }, [isSuccess, hash, nameTxStatus, gameTxStatus, tempName, refetchPlayerName, refetchPlayerPoints, refetchActiveGame, refetchGameState]);
+  }, [isSuccess, hash, nameTxStatus, startGameTxStatus, submitTxStatus, forfeitTxStatus, tempName, refetchPlayerName, refetchPlayerPoints, refetchActiveGame, refetchGameState]);
 
   // Handle transaction error
   useEffect(() => {
@@ -385,13 +412,21 @@ const ColorSnapGame = () => {
       if (nameTxStatus === 'pending') {
         setNameTxStatus('error');
         setNameTxError(error.message || 'Transaction failed');
-      } else if (gameTxStatus === 'pending') {
-        setGameTxStatus('error');
+      } else if (startGameTxStatus === 'pending') {
+        setStartGameTxStatus('error');
+        setGameTxError(error.message || 'Transaction failed');
+        setLoadingGame(false);
+      } else if (submitTxStatus === 'pending') {
+        setSubmitTxStatus('error');
+        setGameTxError(error.message || 'Transaction failed');
+        setLoadingGame(false);
+      } else if (forfeitTxStatus === 'pending') {
+        setForfeitTxStatus('error');
         setGameTxError(error.message || 'Transaction failed');
         setLoadingGame(false);
       }
     }
-  }, [isError, error, nameTxStatus, gameTxStatus]);
+  }, [isError, error, nameTxStatus, startGameTxStatus, submitTxStatus, forfeitTxStatus]);
 
   // Auto-dismiss transaction status messages
   useEffect(() => {
@@ -405,14 +440,24 @@ const ColorSnapGame = () => {
   }, [nameTxStatus]);
 
   useEffect(() => {
-    if (gameTxStatus && gameTxStatus !== 'pending') {
+    if (submitTxStatus && submitTxStatus !== 'pending') {
       const timer = setTimeout(() => {
-        setGameTxStatus(null);
+        setSubmitTxStatus(null);
         setGameTxError(null);
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [gameTxStatus]);
+  }, [submitTxStatus]);
+
+  useEffect(() => {
+    if (forfeitTxStatus && forfeitTxStatus !== 'pending') {
+      const timer = setTimeout(() => {
+        setForfeitTxStatus(null);
+        setGameTxError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [forfeitTxStatus]);
 
   // Game completion listener
   useGameCompletedListener({
@@ -420,14 +465,17 @@ const ColorSnapGame = () => {
     playerAddress: address,
     gameId: onchainGameId,
     onCompleted: () => {
-      setShowCongrats(true);
-      setTimeout(() => setShowCongrats(false), 3000);
+      // Only show congrats for successful submissions, not forfeits
+      if (lastTransactionType === 'submit') {
+        setShowCongrats(true);
+        setTimeout(() => setShowCongrats(false), 3000);
+      }
       setGameCompleted(true);
     },
   });
 
   // Reset target reveal lockout on new game or submission
-  const isGameTxSuccess = gameTxStatus === 'success';
+  const isGameTxSuccess = submitTxStatus === 'success';
   useEffect(() => {
     resetTargetRevealLockout();
   }, [onchainGameId, isGameTxSuccess, resetTargetRevealLockout]);
@@ -461,7 +509,7 @@ const ColorSnapGame = () => {
             <h1 className="text-4xl sm:text-6xl font-black bg-gradient-to-r from-blue-400 via-teal-400 to-green-400 bg-clip-text text-transparent tracking-tight">Snap</h1>
             <span className="ml-2 animate-pulse text-yellow-300 text-2xl sm:text-3xl">✨</span>
           </div>
-          <p className="text-lg sm:text-xl text-gray-300 text-center">Match the colors, earn the points!</p>
+          <p className="text-lg sm:text-xl text-gray-300 text-center">🎯 Master the color puzzle, claim your victory! 🏆</p>
         </div>
 
         {/* Name Input */}
@@ -470,7 +518,7 @@ const ColorSnapGame = () => {
             <div className="space-y-4">
               <label className="flex items-center gap-2 text-lg font-semibold text-purple-200 mb-2">
                 <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                Player Name
+                🎮 Name
               </label>
               <div className="flex gap-2 items-center w-full">
                 <input
@@ -493,9 +541,9 @@ const ColorSnapGame = () => {
                         <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
                         <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75" />
                       </svg> 
-                      Setting...
+                      🚀 Registering...
                     </span>
-                  ) : 'Set'}
+                  ) : 'Register'}
                 </button>
               </div>
               {tempName.length > 31 && (
@@ -548,7 +596,7 @@ const ColorSnapGame = () => {
                       </span>
                       <span className="text-lg text-white font-semibold">{playerName}</span>
                     </div>
-                    <p className="text-sm text-gray-300">Points: {points}</p>
+                    <p className="text-sm text-gray-300">🏆 Score: {points} points</p>
                   </div>
                 )}
               </div>
@@ -564,21 +612,21 @@ const ColorSnapGame = () => {
                 {!gameActive ? (
                   <button
                     onClick={startGame}
-                    disabled={!playerName || loadingGame || gameTxStatus === 'pending' || isPending}
+                    disabled={!playerName || loadingGame || startGameTxStatus === 'pending' || isPending}
                     className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {loadingGame || gameTxStatus === 'pending' || isPending ? (
+                    {loadingGame || startGameTxStatus === 'pending' || isPending ? (
                       <>
                         <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
                           <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75" />
                         </svg>
-                        Starting...
+                        🚀 Launching Challenge...
                       </>
                     ) : (
                       <>
                         <Play className="w-5 h-5" />
-                        Start Game
+                        🎮 Start New Challenge
                       </>
                     )}
                   </button>
@@ -586,20 +634,20 @@ const ColorSnapGame = () => {
                   <button
                     onClick={endGame}
                     className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
-                    disabled={isPending}
+                    disabled={isPending || forfeitTxStatus === 'pending'}
                   >
-                    {isPending ? (
+                    {(isPending && lastTransactionType === 'end') || forfeitTxStatus === 'pending' ? (
                       <>
                         <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
                           <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75" />
                         </svg>
-                        Ending...
+                        ⏳ Forfeiting...
                       </>
                     ) : (
                       <>
                         <RotateCw className="w-5 h-5" />
-                        End Game
+                        🏳️ Forfeit Challenge
                       </>
                     )}
                   </button>
@@ -614,33 +662,35 @@ const ColorSnapGame = () => {
           <div className="max-w-4xl mx-auto mb-8">
             <div className="bg-gray-500 bg-opacity-10 backdrop-blur-sm rounded-xl p-8 border border-white border-opacity-20">
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold mb-2">Game #{onchainGameId}</h2>
+                <h2 className="text-2xl font-bold mb-2">🎯 ColorSnap Challenge #{onchainGameId}</h2>
                 <div className="flex justify-center gap-6 text-sm">
-                  <span>Moves: {moves}</span>
-                  <span>Correct: {countCorrectBottles(bottles, target)}/{bottles.length}</span>
+                  <span className="font-semibold">🔄 Swaps: {moves}</span>
+                  <span className="font-semibold">✅ Matched: {countCorrectBottles(bottles, target)}/{bottles.length}</span>
                   <button
                     onClick={handleShowTarget}
-                    disabled={targetRevealLocked}
+                    disabled={targetRevealLocked || !canRevealTarget || submitTxStatus === 'pending' || forfeitTxStatus === 'pending'}
                     className={
                       `flex items-center gap-1 transition-colors ` +
-                      (targetRevealLocked
-                        ? 'text-gray-400 cursor-not-allowed'
-                        : 'text-blue-300 hover:text-blue-200')
+                      (targetRevealLocked || !canRevealTarget || submitTxStatus === 'pending' || forfeitTxStatus === 'pending'
+                        ? 'text-red-600 cursor-not-allowed'
+                        : 'text-green-600 hover:text-green-400')
                     }
                   >
                     {showTarget ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     {showTarget
-                      ? 'Hide Target'
-                      : (targetRevealLocked)
-                        ? `Show Target (${targetRevealCountdown}s)`
-                        : 'Show Target'}
+                      ? '👁️ Hide Solution'
+                      : !canRevealTarget
+                        ? `🔒 Peek Solution (${5 - moves} swaps needed)`
+                        : (targetRevealLocked)
+                          ? `⏳ Peek Solution (${targetRevealCountdown}s)`
+                          : '👁️ Peek Solution'}
                   </button>
                 </div>
               </div>
 
               {/* Current Bottles */}
               <div className="text-center mb-6">
-                <h3 className="text-lg font-semibold mb-4">Your Bottles</h3>
+                <h3 className="text-lg font-semibold mb-4">🧪 Your Color Mix</h3>
                 <div className="flex justify-center">
                   {bottles.map((color, index) => (
                     <Bottle
@@ -652,29 +702,29 @@ const ColorSnapGame = () => {
                     />
                   ))}
                 </div>
-                <p className="text-sm text-gray-300 mt-2">Click two bottles to swap them</p>
+                <p className="text-sm text-gray-300 mt-2">🎯 Select two bottles to swap their positions</p>
                 <button
                   onClick={submitResult}
-                  disabled={isPending || !bottlesMatchTarget(bottles, target) || gameTxStatus === 'pending'}
+                  disabled={isPending || !bottlesMatchTarget(bottles, target) || submitTxStatus === 'pending'}
                   className="mt-4 px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold transition-colors disabled:opacity-50"
                 >
-                  {gameTxStatus === 'pending' || isPending ? 'Submitting...' : 'Submit Result'}
+                  {(isPending && lastTransactionType === 'submit') || submitTxStatus === 'pending' ? '🚀 Submitting...' : '🏆 Submit Solution'}
                 </button>
                 {!bottlesMatchTarget(bottles, target) && (
-                  <p className="text-yellow-400 text-sm mt-2">Arrange the bottles to match the target before submitting!</p>
+                  <p className="text-yellow-400 text-sm mt-2">⚠️ Arrange your bottles to match the target pattern!</p>
                 )}
-                {gameTxStatus === 'error' && (
-                  <p className="text-red-400 text-sm mt-2">{gameTxError || 'Transaction failed'}</p>
+                {submitTxStatus === 'error' && (
+                  <p className="text-red-400 text-sm mt-2">❌ {gameTxError || 'Transaction failed'}</p>
                 )}
-                {gameTxStatus === 'success' && !isPending && (
-                  <p className="text-green-400 text-sm mt-2">Game Verified!</p>
+                {submitTxStatus === 'success' && !isPending && (
+                  <p className="text-green-400 text-sm mt-2">🎉 Solution Verified!</p>
                 )}
               </div>
 
               {/* Target Bottles */}
               {showTarget && (
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold mb-4">Target Configuration</h3>
+                  <h3 className="text-lg font-semibold mb-4">🎯 Target Pattern</h3>
                   <div className="flex justify-center">
                     {target.map((color, index) => (
                       <Bottle
@@ -685,6 +735,7 @@ const ColorSnapGame = () => {
                       />
                     ))}
                   </div>
+                  <p className="text-sm text-blue-300 mt-2">✨ Match this exact pattern to win!</p>
                 </div>
               )}
             </div>
