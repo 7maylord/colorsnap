@@ -1,6 +1,6 @@
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
-import { somniaTestnet } from '@reown/appkit/networks'
 import type { AppKitNetwork } from '@reown/appkit/networks'
+import { customSomniaTestnet, customElectroneumTestnet } from './chains'
 
 // Get projectId from https://cloud.reown.com
 export const projectId = process.env.NEXT_PUBLIC_PROJECT_ID
@@ -9,24 +9,12 @@ if (!projectId) {
   throw new Error('Project ID is not defined')
 }
 
-// Create a custom Somnia Testnet network with a reliable RPC
-export const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL
+export const networks = [
+  customSomniaTestnet,
+  customElectroneumTestnet
+] as [AppKitNetwork, ...AppKitNetwork[]]
 
-const customSomniaTestnet = {
-  ...somniaTestnet,
-  rpcUrls: {
-    default: {
-      http: [rpcUrl],
-    },
-    public: {
-      http: [rpcUrl],
-    },
-  },
-}
-
-export const networks = [customSomniaTestnet] as [AppKitNetwork, ...AppKitNetwork[]]
-
-//Set up the Wagmi Adapter (Config)
+// Set up the Wagmi Adapter (Config)
 export const wagmiAdapter = new WagmiAdapter({
   ssr: true,
   projectId,
@@ -34,3 +22,9 @@ export const wagmiAdapter = new WagmiAdapter({
 })
 
 export const config = wagmiAdapter.wagmiConfig
+
+// Contract addresses for different networks
+export const CONTRACT_ADDRESSES = {
+  SOMNIA: process.env.NEXT_PUBLIC_SOMNIA_CONTRACT_ADDRESS,
+  ELECTRONEUM: process.env.NEXT_PUBLIC_ETN_CONTRACT_ADDRESS
+}
