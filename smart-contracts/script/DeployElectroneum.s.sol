@@ -52,13 +52,13 @@ contract ColorSnapElectroneumScript is Script {
         string[] memory args = new string[](8);
         args[0] = "forge";
         args[1] = "verify-contract";
-        args[2] = vm.toString(address(colorsnap));  // Convert address to string
+        args[2] = vm.toString(address(colorsnap)); // Convert address to string
         args[3] = "ColorSnap";
         args[4] = "--chain-id";
         args[5] = chainId;
         args[6] = "--watch";
         args[7] = "--constructor-args";
-        
+
         // Note: Adjust verification command based on Electroneum's explorer requirements
         try vm.ffi(args) returns (bytes memory) {
             console2.log("Contract verification submitted successfully");
@@ -71,7 +71,7 @@ contract ColorSnapElectroneumScript is Script {
     function logVerificationCommand() internal view {
         string memory contractAddress = vm.toString(address(colorsnap));
         string memory ownerAddress = vm.toString(vm.addr(vm.envUint("PRIVATE_KEY")));
-        
+
         console2.log("To verify manually, run:");
         console2.log(
             string.concat(
