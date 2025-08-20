@@ -13,11 +13,16 @@ The ColorSnap Game is a decentralized, on-chain game built on Somnia, where play
 ## Deployed Contract
 
 The ColorSnap smart contract is deployed at:
-**`0xc2dc20E9F389114578F78a7f3C3B071db0b8e8dC`**
 
 - **Network**: Somnia Testnet
+- **Contract Address**: `0xc2dc20E9F389114578F78a7f3C3B071db0b8e8dC`
 - **Explorer**: [Somnia Explorer](https://shannon-explorer.somnia.network/address/0xc2dc20E9F389114578F78a7f3C3B071db0b8e8dC?tab=index)
 - **Chain ID**: 50312
+
+- **Network**: Electroneum Testnet
+- **Contract Address**: `0xEF7902FeE12ea3D3245eD721767FB048Afa38a2f`
+- **Explorer**: [Electroneum Testnet Explorer](https://testnet-explorer.electroneum.com/address/0xEF7902FeE12ea3D3245eD721767FB048Afa38a2f)
+- **Chain ID**: 5201420
 
 ## Features
 

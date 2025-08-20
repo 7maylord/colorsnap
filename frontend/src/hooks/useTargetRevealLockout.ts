@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
-export function useTargetRevealLockout(lockoutMs = 180000, revealMs = 4000, moves = 0) {
+export function useTargetRevealLockout(lockoutMs = 180000, revealMs = 3000, moves = 0) {
   const [showTarget, setShowTarget] = useState(false);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(0);
