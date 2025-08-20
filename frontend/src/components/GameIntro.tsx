@@ -1,16 +1,28 @@
 "use client";
 
-import { useAccount, useReadContract } from "wagmi";
+import { useAccount, useReadContract, useChainId } from "wagmi";
 import WalletConnectButton from "./WalletConnectButton";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import colorSnapAbi from "../abi/color_snap.json";
+import { CONTRACT_ADDRESSES } from "../config";
+import { CHAIN_IDS } from "../config/chains";
 
 export default function GameIntro() {
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
   const walletConnected = !!isConnected && !!address;
   const [playerName, setPlayerName] = useState<string>("");
-  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string;
+  
+  // Get contract address based on current network
+  const getContractAddress = () => {
+    if (chainId === CHAIN_IDS.ELECTRONEUM) {
+      return CONTRACT_ADDRESSES.ELECTRONEUM;
+    }
+    return CONTRACT_ADDRESSES.SOMNIA; // Default to Somnia
+  };
+  
+  const contractAddress = getContractAddress();
 
   // Fetch player name using Wagmi
   const { data: playerNameData, error: playerNameError } = useReadContract({
@@ -83,7 +95,7 @@ export default function GameIntro() {
           Master the art of <span className="text-purple-400 font-bold">color matching</span> in this mind-bending puzzle game
         </p>
         <p className="text-lg text-gray-400 mb-8 text-center">
-          Built on Somnia • Play to Earn • Compete Globally
+          Built OnChain • Play to Earn • Compete Globally
         </p>
         {/* Game Features */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 w-full max-w-3xl mx-auto justify-center">

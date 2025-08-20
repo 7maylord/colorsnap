@@ -50,23 +50,14 @@ export default async function RootLayout({
             <footer className="bg-gray-100 border-t border-gray-200 py-2">
               <div className="container mx-auto px-4 text-center text-sm text-gray-600">
                 <p>
-                  Built with ❤️ on{" "}
-                  <a 
-                    href="https://testnet.somnia.network/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-somnia-600 hover:text-somnia-700 font-medium"
-                  >
-                    Somnia
-                  </a>
-                  {" | "}
+                  Built with ❤️ by {" "}
                   <a 
                     href="https://github.com/7maylord/colorsnap" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-somnia-600 hover:text-somnia-700 font-medium"
                   >
-                    GitHub
+                    Maylord
                   </a>
                 </p>
               </div>

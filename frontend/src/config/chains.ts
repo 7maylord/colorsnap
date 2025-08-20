@@ -1,10 +1,10 @@
-import { defineChain } from "wagmi"
+import { defineChain } from "viem"
 import type { AppKitNetwork } from "@reown/appkit/networks"
 import { somniaTestnet } from "@reown/appkit/networks"
 
 export const CHAIN_IDS = {
   SOMNIA: 50312,
-  ELECTRONEUM: 52014
+  ELECTRONEUM: 5201420
 } as const
 
 export const electroneum = defineChain({
@@ -29,7 +29,7 @@ export const electroneum = defineChain({
   testnet: true,
 })
 
-// Create custom network configurations with reliable RPCs
+// Somnia Chain Config
 export const customSomniaTestnet: AppKitNetwork = {
   ...somniaTestnet,
   id: CHAIN_IDS.SOMNIA,

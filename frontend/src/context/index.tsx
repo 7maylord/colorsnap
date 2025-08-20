@@ -13,7 +13,7 @@ const queryClient = new QueryClient()
 // Set up metadata
 const metadata = {
   name: 'ColorSnap Game',
-  description: 'Decentralized color matching game on Somnia Testnet',
+  description: 'Decentralized color matching game OnChain',
   url: 'https://colorsnaps.vercel.app/', // origin must match your domain & subdomain
   icons: ['https://res.cloudinary.com/di2zpd8z7/image/upload/v1754051086/20250731_2328_Enhanced_Logo_Design_remix_01k1h9gxxwfb582phn4cc0635f_1_eisbdt.png']
 }

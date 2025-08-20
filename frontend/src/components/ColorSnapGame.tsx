@@ -1,19 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { Play, RotateCw, Eye, EyeOff } from 'lucide-react';
 import BottlesBackground from "./BottlesBackground";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId } from "wagmi";
 import { useTargetRevealLockout } from "../hooks/useTargetRevealLockout";
 import { useGameCompletedListener } from "../hooks/useGameCompletedListener";
 import Bottle from "./Bottle";
 import CongratsMessage from "./CongratsMessage";
 import InstructionsModal from "./InstructionsModal";
 import colorSnapAbi from "../abi/color_snap.json";
+import { CONTRACT_ADDRESSES } from "../config";
+import { CHAIN_IDS } from "../config/chains";
 
 type BottleColor = 'Red' | 'Blue' | 'Green' | 'Yellow' | 'Purple';
 
 const ColorSnapGame = () => {
   const { address, isConnected } = useAccount();
-  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
+  const chainId = useChainId();
+  
+  // Get contract address based on current network
+  const getContractAddress = (): `0x${string}` => {
+    if (chainId === CHAIN_IDS.ELECTRONEUM) {
+      return CONTRACT_ADDRESSES.ELECTRONEUM as `0x${string}`;
+    }
+    return CONTRACT_ADDRESSES.SOMNIA as `0x${string}`; // Default to Somnia
+  };
+  
+  const contractAddress = getContractAddress();
   
   const [playerName, setPlayerName] = useState('');
   const [tempName, setTempName] = useState('');

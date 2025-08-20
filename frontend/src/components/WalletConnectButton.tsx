@@ -1,6 +1,6 @@
 "use client";
 
-import { useAccount, useDisconnect, useNetwork, useSwitchNetwork } from "wagmi";
+import { useAccount, useDisconnect, useChainId, useSwitchChain } from "wagmi";
 import { useAppKit } from "@reown/appkit/react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -9,8 +9,8 @@ import { CHAIN_IDS, customSomniaTestnet, customElectroneumTestnet } from "@/conf
 export default function WalletConnectButton() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
-  const { chain } = useNetwork();
-  const { switchNetwork } = useSwitchNetwork();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
   const { open } = useAppKit();
   const [isConnecting, setIsConnecting] = useState(false);
   const [justCopied, setJustCopied] = useState(false);
@@ -49,8 +49,8 @@ export default function WalletConnectButton() {
   };
 
   const handleSwitchNetwork = (chainId: number) => {
-    if (switchNetwork) {
-      switchNetwork(chainId);
+    if (switchChain) {
+      switchChain({ chainId });
     }
     setDropdownOpen(false);
   };
@@ -85,7 +85,7 @@ export default function WalletConnectButton() {
             {shortened}
           </span>
           <span className="text-xs opacity-60">
-            ({chain?.name || 'Unknown Network'})
+            ({chainId === CHAIN_IDS.SOMNIA ? 'Somnia Testnet' : chainId === CHAIN_IDS.ELECTRONEUM ? 'Electroneum Testnet' : 'Unknown Network'})
           </span>
           {justCopied ? (
             <svg
@@ -142,22 +142,22 @@ export default function WalletConnectButton() {
               <button
                 onClick={() => handleSwitchNetwork(CHAIN_IDS.SOMNIA)}
                 className={`flex items-center justify-between w-full px-4 py-2 text-sm hover:bg-white/10 text-left ${
-                  chain?.id === customSomniaTestnet.id ? 'text-blue-400' : 'text-white/90'
+                  chainId === customSomniaTestnet.id ? 'text-blue-400' : 'text-white/90'
                 }`}
               >
                 <span>Somnia Testnet</span>
-                {chain?.id === customSomniaTestnet.id && (
+                {chainId === customSomniaTestnet.id && (
                   <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Active</span>
                 )}
               </button>
               <button
                 onClick={() => handleSwitchNetwork(CHAIN_IDS.ELECTRONEUM)}
                 className={`flex items-center justify-between w-full px-4 py-2 text-sm hover:bg-white/10 text-left ${
-                  chain?.id === customElectroneumTestnet.id ? 'text-blue-400' : 'text-white/90'
+                  chainId === customElectroneumTestnet.id ? 'text-blue-400' : 'text-white/90'
                 }`}
               >
                 <span>Electroneum Testnet</span>
-                {chain?.id === customElectroneumTestnet.id && (
+                {chainId === customElectroneumTestnet.id && (
                   <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Active</span>
                 )}
               </button>

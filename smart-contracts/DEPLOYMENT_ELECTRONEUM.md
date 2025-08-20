@@ -16,8 +16,8 @@ Create or update your `.env` file in the `smart-contracts` directory with Electr
 ```bash
 # Required for deployment
 PRIVATE_KEY=your_private_key_here
-ETN_RPC_URL=https://testnet.electroneum.com  # Replace with actual Electroneum testnet RPC
-ETN_CHAIN_ID=52014 # Replace with actual Electroneum testnet chain ID
+ETN_RPC_URL=https://rpc.ankr.com/electroneum_testnet  # Replace with actual Electroneum testnet RPC
+ETN_CHAIN_ID=5201420 # Replace with actual Electroneum testnet chain ID
 
 # Optional - for contract verification if supported
 ETN_EXPLORER_API_KEY=leave empty
@@ -50,7 +50,7 @@ After deployment:
 1. Copy the deployed contract address from the deployment output
 2. Update your frontend `.env` file with:
 ```
-NEXT_PUBLIC_CONTRACT_ADDRESS=your_deployed_contract_address
+NEXT_PUBLIC_CONTRACT_ADDRESS=0xc2dc20E9F389114578F78a7f3C3B071db0b8e8dC
 NEXT_PUBLIC_ETN_RPC_URL=your_electroneum_testnet_rpc
 ```
 

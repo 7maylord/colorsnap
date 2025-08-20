@@ -6,6 +6,9 @@ import { somniaTestnet } from "viem/chains";
 import BottlesBackground from "../../components/BottlesBackground";
 import { Trophy, Sparkles } from "lucide-react";
 import colorSnapAbi from "../../abi/color_snap.json";
+import { useChainId } from "wagmi";
+import { CONTRACT_ADDRESSES } from "../../config";
+import { CHAIN_IDS, electroneum } from "../../config/chains";
 
 // Helper to format contract address as 0x-prefixed hex string
 function formatAddress(addr: string | bigint) {
@@ -41,15 +44,33 @@ interface PlayerData {
 }
 
 export default function LeaderboardPage() {
+  const chainId = useChainId();
   const [leaderboard, setLeaderboard] = useState<PlayerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string;
+  
+  // Get contract address and chain based on current network
+  const getContractConfig = () => {
+    if (chainId === CHAIN_IDS.ELECTRONEUM) {
+      return {
+        contractAddress: CONTRACT_ADDRESSES.ELECTRONEUM,
+        chain: electroneum,
+        rpcUrl: process.env.NEXT_PUBLIC_ETN_RPC_URL
+      };
+    }
+    return {
+      contractAddress: CONTRACT_ADDRESSES.SOMNIA,
+      chain: somniaTestnet,
+      rpcUrl: process.env.NEXT_PUBLIC_SOMNIA_RPC_URL || 'https://dream-rpc.somnia.network'
+    };
+  };
+  
+  const { contractAddress, chain, rpcUrl } = getContractConfig();
 
   // Create public client for reading contract data
   const publicClient = createPublicClient({
-    chain: somniaTestnet,
-    transport: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://dream-rpc.somnia.network'),
+    chain: chain,
+    transport: http(rpcUrl),
   });
 
   // Fetch leaderboard data
