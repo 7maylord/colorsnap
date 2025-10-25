@@ -81,12 +81,12 @@ export default function LeaderboardPage() {
     
     return configs;
   };
-  
-  const networkConfigs = getAllNetworkConfigs();
 
   // Fetch aggregated leaderboard data from all networks
   useEffect(() => {
     const fetchAggregatedLeaderboard = async () => {
+      const networkConfigs = getAllNetworkConfigs();
+      
       if (networkConfigs.length === 0) {
         setError('No network configurations available');
         setIsLoading(false);
@@ -187,7 +187,7 @@ export default function LeaderboardPage() {
     };
 
     fetchAggregatedLeaderboard();
-  }, [networkConfigs]);
+  }, []);
 
   // Find the top score for progress bars
   const topScore = leaderboard.length > 0 ? leaderboard[0].points : 1;
