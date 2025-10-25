@@ -14,6 +14,11 @@ The ColorSnap Game is a decentralized multi-chain game, where players match colo
 
 The ColorSnap smart contract is deployed at:
 
+**Network**: Base Mainnet
+- **Contract Address**: `0x62dcaAdAd6D5E6CA4B594CEB636A147537aE7F8f`
+- **Explorer**: [Base Explorer](https://basescan.org/address/0x62dcaAdAd6D5E6CA4B594CEB636A147537aE7F8f)
+- **Chain ID**: 8453
+
 **Network**: Somnia Testnet
 - **Contract Address**: `0xc2dc20E9F389114578F78a7f3C3B071db0b8e8dC`
 - **Explorer**: [Somnia Explorer](https://shannon-explorer.somnia.network/address/0xc2dc20E9F389114578F78a7f3C3B071db0b8e8dC?tab=index)

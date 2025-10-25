@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPublicClient, http } from "viem";
-import { somniaTestnet } from "viem/chains";
+import { somniaTestnet, base } from "viem/chains";
 import BottlesBackground from "../../components/BottlesBackground";
 import { Trophy, Sparkles } from "lucide-react";
 import colorSnapAbi from "../../abi/color_snap.json";
@@ -49,23 +49,44 @@ export default function LeaderboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Get contract address and chain based on current network
-  const getContractConfig = () => {
-    if (chainId === CHAIN_IDS.ELECTRONEUM) {
-      return {
+  // Get all network configurations for aggregated leaderboard
+  const getAllNetworkConfigs = () => {
+    const configs = [];
+    
+    // Base Mainnet
+    if (CONTRACT_ADDRESSES.BASE) {
+      configs.push({
+        name: 'Base Mainnet',
+        contractAddress: CONTRACT_ADDRESSES.BASE,
+        chain: base,
+        rpcUrl: process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org'
+      });
+    }
+    
+    // Somnia Testnet
+    if (CONTRACT_ADDRESSES.SOMNIA) {
+      configs.push({
+        name: 'Somnia Testnet',
+        contractAddress: CONTRACT_ADDRESSES.SOMNIA,
+        chain: somniaTestnet,
+        rpcUrl: process.env.NEXT_PUBLIC_SOMNIA_RPC_URL || 'https://dream-rpc.somnia.network'
+      });
+    }
+    
+    // Electroneum Testnet
+    if (CONTRACT_ADDRESSES.ELECTRONEUM) {
+      configs.push({
+        name: 'Electroneum Testnet',
         contractAddress: CONTRACT_ADDRESSES.ELECTRONEUM,
         chain: electroneum,
         rpcUrl: process.env.NEXT_PUBLIC_ETN_RPC_URL
-      };
+      });
     }
-    return {
-      contractAddress: CONTRACT_ADDRESSES.SOMNIA,
-      chain: somniaTestnet,
-      rpcUrl: process.env.NEXT_PUBLIC_SOMNIA_RPC_URL || 'https://dream-rpc.somnia.network'
-    };
+    
+    return configs;
   };
   
-  const { contractAddress, chain, rpcUrl } = getContractConfig();
+  const networkConfigs = getAllNetworkConfigs();
 
   // Create public client for reading contract data
   const publicClient = createPublicClient({
