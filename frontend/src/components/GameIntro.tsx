@@ -16,6 +16,9 @@ export default function GameIntro() {
   
   // Get contract address based on current network
   const getContractAddress = () => {
+    if (chainId === CHAIN_IDS.BASE) {
+      return CONTRACT_ADDRESSES.BASE;
+    }
     if (chainId === CHAIN_IDS.ELECTRONEUM) {
       return CONTRACT_ADDRESSES.ELECTRONEUM;
     }

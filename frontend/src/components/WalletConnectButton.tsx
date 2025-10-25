@@ -4,7 +4,7 @@ import { useAccount, useDisconnect, useChainId, useSwitchChain } from "wagmi";
 import { useAppKit } from "@reown/appkit/react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { CHAIN_IDS, customSomniaTestnet, customElectroneumTestnet } from "@/config/chains";
+import { CHAIN_IDS, customSomniaTestnet, customElectroneumTestnet, customBaseMainnet } from "@/config/chains";
 
 export default function WalletConnectButton() {
   const { address, isConnected } = useAccount();
@@ -85,7 +85,7 @@ export default function WalletConnectButton() {
             {shortened}
           </span>
           <span className="text-xs opacity-60">
-            ({chainId === CHAIN_IDS.SOMNIA ? 'Somnia Testnet' : chainId === CHAIN_IDS.ELECTRONEUM ? 'Electroneum Testnet' : 'Unknown Network'})
+            ({chainId === CHAIN_IDS.BASE ? 'Base Mainnet' : chainId === CHAIN_IDS.SOMNIA ? 'Somnia Testnet' : chainId === CHAIN_IDS.ELECTRONEUM ? 'Electroneum Testnet' : 'Unknown Network'})
           </span>
           {justCopied ? (
             <svg
@@ -139,6 +139,17 @@ export default function WalletConnectButton() {
               <div className="px-4 py-2 text-xs text-white/50 border-b border-white/10">
                 Networks
               </div>
+              <button
+                onClick={() => handleSwitchNetwork(CHAIN_IDS.BASE)}
+                className={`flex items-center justify-between w-full px-4 py-2 text-sm hover:bg-white/10 text-left ${
+                  chainId === customBaseMainnet.id ? 'text-blue-400' : 'text-white/90'
+                }`}
+              >
+                <span>Base Mainnet</span>
+                {chainId === customBaseMainnet.id && (
+                  <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Active</span>
+                )}
+              </button>
               <button
                 onClick={() => handleSwitchNetwork(CHAIN_IDS.SOMNIA)}
                 className={`flex items-center justify-between w-full px-4 py-2 text-sm hover:bg-white/10 text-left ${

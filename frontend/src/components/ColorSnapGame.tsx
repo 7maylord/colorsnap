@@ -19,6 +19,9 @@ const ColorSnapGame = () => {
   
   // Get contract address based on current network
   const getContractAddress = (): `0x${string}` => {
+    if (chainId === CHAIN_IDS.BASE) {
+      return CONTRACT_ADDRESSES.BASE as `0x${string}`;
+    }
     if (chainId === CHAIN_IDS.ELECTRONEUM) {
       return CONTRACT_ADDRESSES.ELECTRONEUM as `0x${string}`;
     }

@@ -1,8 +1,9 @@
 import { defineChain } from "viem"
 import type { AppKitNetwork } from "@reown/appkit/networks"
-import { somniaTestnet } from "@reown/appkit/networks"
+import { somniaTestnet, base } from "@reown/appkit/networks"
 
 export const CHAIN_IDS = {
+  BASE: 8453,
   SOMNIA: 50312,
   ELECTRONEUM: 5201420
 } as const
@@ -52,6 +53,20 @@ export const customElectroneumTestnet: AppKitNetwork = {
     },
     public: {
       http: [process.env.NEXT_PUBLIC_ETN_RPC_URL || ""],
+    },
+  },
+}
+
+// Base Mainnet Configuration
+export const customBaseMainnet: AppKitNetwork = {
+  ...base,
+  id: CHAIN_IDS.BASE,
+  rpcUrls: {
+    default: {
+      http: [process.env.NEXT_PUBLIC_BASE_RPC_URL || "https://mainnet.base.org"],
+    },
+    public: {
+      http: [process.env.NEXT_PUBLIC_BASE_RPC_URL || "https://mainnet.base.org"],
     },
   },
 }
