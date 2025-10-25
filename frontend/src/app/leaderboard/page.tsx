@@ -6,9 +6,8 @@ import { somniaTestnet, base } from "viem/chains";
 import BottlesBackground from "../../components/BottlesBackground";
 import { Trophy, Sparkles } from "lucide-react";
 import colorSnapAbi from "../../abi/color_snap.json";
-import { useChainId } from "wagmi";
 import { CONTRACT_ADDRESSES } from "../../config";
-import { CHAIN_IDS, electroneum } from "../../config/chains";
+import { electroneum } from "../../config/chains";
 
 // Helper to format contract address as 0x-prefixed hex string
 function formatAddress(addr: string | bigint) {
@@ -44,7 +43,6 @@ interface PlayerData {
 }
 
 export default function LeaderboardPage() {
-  const chainId = useChainId();
   const [leaderboard, setLeaderboard] = useState<PlayerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,17 +51,15 @@ export default function LeaderboardPage() {
   const getAllNetworkConfigs = () => {
     const configs = [];
     
-    // Base Mainnet
-    if (CONTRACT_ADDRESSES.BASE) {
-      configs.push({
-        name: 'Base Mainnet',
-        contractAddress: CONTRACT_ADDRESSES.BASE,
-        chain: base,
-        rpcUrl: process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org'
-      });
-    }
+    // Base Mainnet - always include with fallback
+    configs.push({
+      name: 'Base Mainnet',
+      contractAddress: CONTRACT_ADDRESSES.BASE || "0x62dcaAdAd6D5E6CA4B594CEB636A147537aE7F8f",
+      chain: base,
+      rpcUrl: process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org'
+    });
     
-    // Somnia Testnet
+    // Somnia Testnet - only if configured
     if (CONTRACT_ADDRESSES.SOMNIA) {
       configs.push({
         name: 'Somnia Testnet',
@@ -73,8 +69,8 @@ export default function LeaderboardPage() {
       });
     }
     
-    // Electroneum Testnet
-    if (CONTRACT_ADDRESSES.ELECTRONEUM) {
+    // Electroneum Testnet - only if configured
+    if (CONTRACT_ADDRESSES.ELECTRONEUM && process.env.NEXT_PUBLIC_ETN_RPC_URL) {
       configs.push({
         name: 'Electroneum Testnet',
         contractAddress: CONTRACT_ADDRESSES.ELECTRONEUM,
@@ -88,45 +84,99 @@ export default function LeaderboardPage() {
   
   const networkConfigs = getAllNetworkConfigs();
 
-  // Create public client for reading contract data
-  const publicClient = createPublicClient({
-    chain: chain,
-    transport: http(rpcUrl),
-  });
-
-  // Fetch leaderboard data
+  // Fetch aggregated leaderboard data from all networks
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      if (!contractAddress) {
-        setError('Contract address not configured');
+    const fetchAggregatedLeaderboard = async () => {
+      if (networkConfigs.length === 0) {
+        setError('No network configurations available');
         setIsLoading(false);
         return;
       }
 
       try {
-        const data = await publicClient.readContract({
-          address: contractAddress as `0x${string}`,
-          abi: colorSnapAbi,
-          functionName: 'getAllPlayerPoints',
+        const allPlayers = new Map<string, PlayerData>();
+        
+        // Fetch data from each network with timeout
+        const fetchPromises = networkConfigs.map(async (config) => {
+          try {
+            const publicClient = createPublicClient({
+              chain: config.chain,
+              transport: http(config.rpcUrl, {
+                timeout: 10000, // 10 second timeout
+              }),
+            });
+
+            const data = await publicClient.readContract({
+              address: config.contractAddress as `0x${string}`,
+              abi: colorSnapAbi,
+              functionName: 'getAllPlayerPoints',
+            });
+
+            return {
+              config,
+              data: data as Array<{
+                playerAddress: string;
+                name: string;
+                points: bigint;
+                moves: bigint;
+              }>
+            };
+          } catch (networkError) {
+            console.warn(`Failed to fetch from ${config.name}:`, networkError);
+            return null;
+          }
         });
 
-        const players = data as Array<{
-          playerAddress: string;
-          name: string;
-          points: bigint;
-          moves: bigint;
-        }>;
-        const leaderboardDataProcessed = players.map((player) => {
-          return {
-            playerAddress: player.playerAddress,
-            name: player.name || "",
-            points: Number(player.points),
-            moves: Number(player.moves),
-          };
+        // Wait for all network requests with timeout
+        const results = await Promise.allSettled(fetchPromises);
+        
+        // Process successful results
+        results.forEach((result) => {
+          if (result.status === 'fulfilled' && result.value) {
+            const { data } = result.value;
+            
+            // Aggregate player data across networks
+            data.forEach((player) => {
+              const address = player.playerAddress.toLowerCase();
+              const points = Number(player.points);
+              const moves = Number(player.moves);
+              const name = player.name || "";
+
+              if (allPlayers.has(address)) {
+                // Player exists, aggregate points and moves
+                const existing = allPlayers.get(address)!;
+                allPlayers.set(address, {
+                  playerAddress: address,
+                  name: existing.name || name, // Keep the first non-empty name
+                  points: existing.points + points,
+                  moves: existing.moves + moves,
+                });
+              } else {
+                // New player
+                allPlayers.set(address, {
+                  playerAddress: address,
+                  name: name,
+                  points: points,
+                  moves: moves,
+                });
+              }
+            });
+          }
         });
-        leaderboardDataProcessed.sort((a, b) => b.points - a.points || a.moves - b.moves);
-        setLeaderboard(leaderboardDataProcessed);
-        setError(null);
+
+        // Convert map to array and sort
+        const leaderboardData = Array.from(allPlayers.values());
+        leaderboardData.sort((a, b) => b.points - a.points || a.moves - b.moves);
+        
+        // If no data from any network, show empty leaderboard
+        if (leaderboardData.length === 0) {
+          console.warn('No data received from any network');
+          setLeaderboard([]);
+          setError('No leaderboard data available. Please try again later.');
+        } else {
+          setLeaderboard(leaderboardData);
+          setError(null);
+        }
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load leaderboard';
         setError(errorMessage);
@@ -136,8 +186,8 @@ export default function LeaderboardPage() {
       }
     };
 
-    fetchLeaderboard();
-  }, [contractAddress, publicClient]);
+    fetchAggregatedLeaderboard();
+  }, [networkConfigs]);
 
   // Find the top score for progress bars
   const topScore = leaderboard.length > 0 ? leaderboard[0].points : 1;
@@ -161,9 +211,12 @@ export default function LeaderboardPage() {
           <div className="bg-gradient-to-br from-white/20 via-purple-200/20 to-blue-200/20 backdrop-blur-xl rounded-2xl p-2 sm:p-6 border border-white/30 shadow-xl ring-1 ring-purple-200/30">
             <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2 animate-pulse bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
               <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400 animate-bounce" />
-              Leaderboard
+              Global Leaderboard
               <Sparkles className="w-5 h-5 text-pink-300 animate-spin-slow" />
             </h2>
+            <p className="text-sm text-gray-300 mb-4 text-center">
+              Combined scores across all supported networks
+            </p>
             <div className="space-y-2 sm:space-y-3 overflow-x-auto">
               {isLoading ? (
                 <div className="text-center py-8">

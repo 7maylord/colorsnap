@@ -8,7 +8,7 @@ The ColorSnap Game is a decentralized multi-chain game, where players match colo
 - **Frontend**: Next.js 15 with TypeScript
 - **Web3**: Wagmi + Reown AppKit
 - **Styling**: Tailwind CSS
-- **Network**: Somnia Testnet
+- **Network**: Base Mainnet (Default)
 
 ## Deployed Contract
 
@@ -34,7 +34,7 @@ The ColorSnap smart contract is deployed at:
 - **Wallet Connection**: Connect any EVM-compatible wallet
 - **Player Registration**: Set your name on-chain
 - **Color Matching Game**: Match bottle configurations to earn points
-- **Global Leaderboard**: Compete with players worldwide
+- **Global Leaderboard**: Compete with players worldwide (aggregated across all networks)
 - **Real-time Updates**: Live game state monitoring
 - **Responsive Design**: Works on all devices
 
@@ -54,7 +54,6 @@ The ColorSnap smart contract is deployed at:
    yarn run dev
    ```
 
-3. **Get Testnet ETH**: Visit [Somnia Faucet](https://docs.somnia.network/get-started/request-stt-tokens-and-try-sending-tokens-to-a-random-address)
 
 ## Project Structure
 
