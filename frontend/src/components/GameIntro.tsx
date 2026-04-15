@@ -25,7 +25,7 @@ export default function GameIntro() {
     if (chainId === CHAIN_IDS.ELECTRONEUM) {
       return CONTRACT_ADDRESSES.ELECTRONEUM;
     }
-    return CONTRACT_ADDRESSES.SOMNIA; // Default to Somnia
+    return CONTRACT_ADDRESSES.BASE_SEPOLIA; // Default to Base Sepolia
   };
   
   const contractAddress = getContractAddress();

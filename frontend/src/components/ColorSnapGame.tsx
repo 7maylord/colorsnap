@@ -28,7 +28,7 @@ const ColorSnapGame = () => {
     if (chainId === CHAIN_IDS.ELECTRONEUM) {
       return CONTRACT_ADDRESSES.ELECTRONEUM as `0x${string}`;
     }
-    return CONTRACT_ADDRESSES.SOMNIA as `0x${string}`; // Default to Somnia
+    return CONTRACT_ADDRESSES.BASE_SEPOLIA as `0x${string}`; // Default to Base Sepolia
   };
   
   const contractAddress = getContractAddress();
