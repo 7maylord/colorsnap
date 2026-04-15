@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createAppKit } from '@reown/appkit/react'
 import React, { type ReactNode } from 'react'
 import { cookieToInitialState, WagmiProvider, type Config } from 'wagmi'
-import { somniaTestnet } from '@reown/appkit/networks'
+import { baseSepolia } from '@reown/appkit/networks'
 
 // Set up queryClient
 const queryClient = new QueryClient()
@@ -23,7 +23,7 @@ export const modal = createAppKit({
   adapters: [wagmiAdapter],
   projectId: projectId!,
   networks,
-  defaultNetwork: somniaTestnet,
+  defaultNetwork: baseSepolia,
   metadata,
   themeMode: 'light',
   features: {

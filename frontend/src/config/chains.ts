@@ -1,9 +1,10 @@
 import { defineChain } from "viem"
 import type { AppKitNetwork } from "@reown/appkit/networks"
-import { somniaTestnet, base } from "@reown/appkit/networks"
+import { somniaTestnet, base, baseSepolia } from "@reown/appkit/networks"
 
 export const CHAIN_IDS = {
   BASE: 8453,
+  BASE_SEPOLIA: 84532,
   SOMNIA: 50312,
   ELECTRONEUM: 5201420
 } as const
@@ -67,6 +68,20 @@ export const customBaseMainnet: AppKitNetwork = {
     },
     public: {
       http: [process.env.NEXT_PUBLIC_BASE_RPC_URL || "https://mainnet.base.org"],
+    },
+  },
+}
+
+// Base Sepolia Testnet Configuration
+export const customBaseSepolia: AppKitNetwork = {
+  ...baseSepolia,
+  id: CHAIN_IDS.BASE_SEPOLIA,
+  rpcUrls: {
+    default: {
+      http: [process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org"],
+    },
+    public: {
+      http: [process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org"],
     },
   },
 }

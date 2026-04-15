@@ -19,6 +19,9 @@ const ColorSnapGame = () => {
   
   // Get contract address based on current network
   const getContractAddress = (): `0x${string}` => {
+    if (chainId === CHAIN_IDS.BASE_SEPOLIA) {
+      return CONTRACT_ADDRESSES.BASE_SEPOLIA as `0x${string}`;
+    }
     if (chainId === CHAIN_IDS.BASE) {
       return CONTRACT_ADDRESSES.BASE as `0x${string}`;
     }
@@ -288,6 +291,7 @@ const ColorSnapGame = () => {
         abi: colorSnapAbi,
         functionName: 'startGame',
         args: [],
+        ...(chainId === CHAIN_IDS.SOMNIA ? { gas: BigInt(1000000) } : {}),
       });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start game';
@@ -345,6 +349,7 @@ const ColorSnapGame = () => {
         abi: colorSnapAbi,
         functionName: 'submitResult',
         args: [BigInt(onchainGameId), bottleEnums, moves],
+        ...(chainId === CHAIN_IDS.SOMNIA ? { gas: BigInt(1000000) } : {}),
       });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Transaction failed';
@@ -367,6 +372,7 @@ const ColorSnapGame = () => {
         abi: colorSnapAbi,
         functionName: 'endGame',
         args: [BigInt(onchainGameId)],
+        ...(chainId === CHAIN_IDS.SOMNIA ? { gas: BigInt(1000000) } : {}),
       });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Transaction failed';

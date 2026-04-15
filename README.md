@@ -37,6 +37,7 @@
 <!-- Live Status Indicators -->
 <p>
   <img src="https://img.shields.io/badge/🟢_Base_Mainnet-LIVE-00D26A?style=flat-square" alt="Base Status" />
+  <img src="https://img.shields.io/badge/🔵_Base_Sepolia-ACTIVE-0052FF?style=flat-square" alt="Base Sepolia Status" />
   <img src="https://img.shields.io/badge/🟡_Somnia_Testnet-ACTIVE-FFD93D?style=flat-square" alt="Somnia Status" />
   <img src="https://img.shields.io/badge/🔵_Electroneum_Testnet-ACTIVE-6BCF7F?style=flat-square" alt="Electroneum Status" />
 </p>
@@ -187,6 +188,25 @@ Our smart contracts are live across multiple networks for maximum accessibility:
 <td>🟢 <strong>LIVE</strong></td>
 </tr>
 <tr>
+<td><strong>🔵 Base Sepolia</strong></td>
+<td>
+  <a href="https://sepolia.basescan.org/address/0xAC8ED39393ec6c97dE6205eD822DCAb51b00fa9F">
+    <code>0xAC8ED39393ec6c97dE6205eD822DCAb51b00fa9F</code>
+  </a>
+  <br/>
+  <button onclick="navigator.clipboard.writeText('0xAC8ED39393ec6c97dE6205eD822DCAb51b00fa9F')">
+    📋 Copy Address
+  </button>
+</td>
+<td>
+  <a href="https://sepolia.basescan.org/address/0xAC8ED39393ec6c97dE6205eD822DCAb51b00fa9F">
+    <img src="https://img.shields.io/badge/BaseScan_Sepolia-0052FF?style=flat&logo=ethereum&logoColor=white" alt="BaseScan Sepolia" />
+  </a>
+</td>
+<td><code>84532</code></td>
+<td>🔵 <strong>TESTNET</strong></td>
+</tr>
+<tr>
 <td><strong>🟡 Somnia Testnet</strong></td>
 <td>
   <a href="https://shannon-explorer.somnia.network/address/0xc2dc20E9F389114578F78a7f3C3B071db0b8e8dC?tab=index">
@@ -239,6 +259,15 @@ RPC URL: https://mainnet.base.org
 Chain ID: 8453
 Currency Symbol: ETH
 Block Explorer: https://basescan.org
+```
+
+**Base Sepolia Testnet:**
+```javascript
+Network Name: Base Sepolia
+RPC URL: https://sepolia.base.org
+Chain ID: 84532
+Currency Symbol: ETH
+Block Explorer: https://sepolia.basescan.org
 ```
 
 **Somnia Testnet:**
@@ -380,6 +409,14 @@ forge script script/Colorsnap.s.sol \
 ```bash
 forge script script/Colorsnap.s.sol \
     --rpc-url https://testnet-rpc.somnia.network \
+    --private-key $PRIVATE_KEY \
+    --broadcast
+```
+
+**🔵 Base Sepolia Testnet:**
+```bash
+forge script script/DeployBaseSepolia.s.sol \
+    --rpc-url https://sepolia.base.org \
     --private-key $PRIVATE_KEY \
     --broadcast
 ```
@@ -591,7 +628,8 @@ colorsnap/
 │   │   └── 📜 Colorsnap.sol               # Main game contract
 │   ├── 📁 script/                  # Deployment Scripts
 │   │   ├── 🚀 Colorsnap.s.sol             # Main deployment
-│   │   ├── 🌐 DeployBase.s.sol            # Base network deployment
+│   │   ├── 🌐 DeployBase.s.sol            # Base mainnet deployment
+│   │   ├── 🔵 DeployBaseSepolia.s.sol     # Base Sepolia deployment
 │   │   └── ⚡ DeployElectroneum.s.sol     # Electroneum deployment
 │   ├── 📁 test/                    # Contract Tests
 │   │   └── 🧪 ColorSnap.t.sol             # Test suite
@@ -782,7 +820,8 @@ WALLETCONNECT_PROJECT_ID=your_project_id
 
 ### Network Configuration
 Networks are configured in `frontend/src/config/chains.ts`:
-- Base Mainnet (Primary)
+- Base Sepolia Testnet (Default)
+- Base Mainnet
 - Somnia Testnet
 - Electroneum Testnet
 
@@ -813,6 +852,12 @@ forge script script/Colorsnap.s.sol \
 
 ### Deploy to Testnets
 ```bash
+# Base Sepolia Testnet
+forge script script/DeployBaseSepolia.s.sol \
+    --rpc-url https://sepolia.base.org \
+    --private-key $PRIVATE_KEY \
+    --broadcast
+
 # Somnia Testnet
 forge script script/Colorsnap.s.sol \
     --rpc-url https://testnet-rpc.somnia.network \

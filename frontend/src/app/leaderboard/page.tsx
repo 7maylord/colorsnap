@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPublicClient, http } from "viem";
-import { somniaTestnet, base } from "viem/chains";
+import { somniaTestnet, base, baseSepolia } from "viem/chains";
 import BottlesBackground from "../../components/BottlesBackground";
 import { Trophy, Sparkles } from "lucide-react";
 import colorSnapAbi from "../../abi/color_snap.json";
@@ -58,6 +58,16 @@ export default function LeaderboardPage() {
       chain: base,
       rpcUrl: process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org'
     });
+
+    // Base Sepolia - always include with fallback
+    if (CONTRACT_ADDRESSES.BASE_SEPOLIA) {
+      configs.push({
+        name: 'Base Sepolia',
+        contractAddress: CONTRACT_ADDRESSES.BASE_SEPOLIA,
+        chain: baseSepolia,
+        rpcUrl: process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org'
+      });
+    }
     
     // Somnia Testnet - only if configured
     if (CONTRACT_ADDRESSES.SOMNIA) {
